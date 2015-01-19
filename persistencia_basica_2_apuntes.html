@@ -391,19 +391,18 @@ En cada dispositivo hay un calendario por defecto, que es al que se añaden los 
 
 <p>Un cumpleaños es un evento que se va a repetir cada año, por lo que podríamos configurarlo como evento recurrente. En el API las repeticiones de eventos se configuran con “reglas de recurrencia” o <code>EKRecurrenceRule</code>. Como ejemplo sencillo, veamos cómo especificaríamos que el evento debe repetirse cada año, en principio sin fecha de finalización:</p>
 
-<p>``<code> objc</code>
- EKRecurrenceRule *recurrencia = [[EKRecurrenceRule alloc]
- initRecurrenceWithFrequency:EKRecurrenceFrequencyYearly
- interval:1 end:nil];
- [evento addRecurrenceRule:recurrencia];</p>
+<pre><code class="objc">`	EKRecurrenceRule *recurrencia = [[EKRecurrenceRule alloc]
+	         initRecurrenceWithFrequency:EKRecurrenceFrequencyYearly 
+	         interval:1 end:nil];
+	[evento addRecurrenceRule:recurrencia];</code></pre>
 
-<pre><code>
-### Buscar eventos en un calendario
+<p>`</p>
 
-Podemos buscar eventos en un rango de fechas
+<h3 id="buscareventosenuncalendario">Buscar eventos en un calendario</h3>
 
-``` objc`
-	//Buscar eventos de hoy en adelante en el calendario por defecto
+<p>Podemos buscar eventos en un rango de fechas</p>
+
+<pre><code class="objc">`	//Buscar eventos de hoy en adelante en el calendario por defecto
 	//usamos el &quot;truco&quot; del método de clase &quot;distantFuture&quot; que nos da una fecha
 	//dentro de varios cientos de años
 	NSPredicate *pred = [store predicateForEventsWithStartDate:[NSDate date] 
@@ -412,6 +411,8 @@ Podemos buscar eventos en un rango de fechas
 	for (EKEvent *e in eventos) {
 	     NSLog(@&quot;%@&quot;, e.description);
 	}</code></pre>
+
+<p>`</p>
 
 <h3 id="alarmas">Alarmas</h3>
 
