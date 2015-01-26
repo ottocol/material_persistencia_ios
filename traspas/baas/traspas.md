@@ -192,7 +192,7 @@ query.limit = 50;
 [query findObjectsInBackgroundWithBlock:^(NSArray *results, NSError *error) {
   if (!error) {
     NSLog(@"Encontrados %d alumnos", [results count]);
-    for (PFObject *object in objects) {
+    for (PFObject *object in results) {
         NSLog(@"%@", object.objectId);
     }
   } else {
