@@ -24,6 +24,10 @@
 
 ---
 
+![](img/modelo_datos.png)
+
+---
+
 ## Crear y editar el modelo de datos
 
 - En el archivo `.xcdatamodeld`
