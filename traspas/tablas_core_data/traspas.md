@@ -164,7 +164,8 @@ self.frController.delegate = self;
           forRowAtIndexPath:(NSIndexPath *)indexPath {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
         //Borramos el objeto gestionado
-        [[self.frController managedObjectContext]
+        [ self.frController.managedObjectContext
+          deleteObject:[self.frController objectAtIndexPath:indexPath]];
         NSError *error;
         [[self.frController managedObjectContext] save:&error];
         if (error) {
