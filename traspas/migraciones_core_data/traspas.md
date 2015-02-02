@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 7: Migraciones de datos en Core Data
+##iOS, sesión 9: Migraciones de datos en Core Data
 
 
 ---
