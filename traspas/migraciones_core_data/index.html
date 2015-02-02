@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Persistencia, bloque de IOS, sesión 7: Migraciones con Core Data</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/mm.css" id="theme">
+
+		<!-- coloreado de sintaxis con prism -->
+		<!--
+		<link rel="stylesheet" type="text/css" href="lib/prism/prism.css">
+        <script type="text/javascript" src="lib/prism/prism.js"></script>
+    	-->
+
+    	<!-- coloreado de sintaxis con highlight.js -->
+    	<link rel="stylesheet" type="text/css" href="lib/css/github.css">
+        
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+		<style type="text/css">
+		.slides .header{
+			position:absolute;
+			top: -50%;
+			left: -50%;
+			width: 100%;
+			display: table;
+		}
+
+		.slides .logo {
+			display: table-cell;
+			vertical-align: middle;
+		}
+
+		.slides .bar {
+			background-color: rgb(18,64,128);
+			font-size: 20px;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			color: white;
+			border-bottom-left-radius:1em;
+			display: table-cell;
+			vertical-align: middle;
+			text-align: center;
+		}
+
+		.slides .footer{
+			position:absolute;
+			bottom: 50%;
+			left: -50%;
+			width: 100%;
+			font-size: 15px;
+			color: gray;
+			display: table;
+		}  
+		.slides .left {
+			display: table-cell;
+			text-align: left;
+		}
+		.slides .right {
+			display: table-cell;
+			text-align: right;
+		}
+		.slides .center {
+			display: table-cell;
+			text-align: center;
+		}
+
+</style>
+
+	</head>
+
+<body>
+	<div class="reveal">
+	<div class="slides">
+		<!-- todo lo que se ponga aqui (que no sea un <section>) aparecerá
+		en todas las diapositivas -->
+		<!--
+		<div class="header">
+			<div class="logo">
+			 <img src="css/images/logo_small.png">
+			</div>
+			<div class="bar">Máster Universitario en Desarrollo de Software para Dispositivos Móviles</div>
+		</div>
+	-->
+		<div class="footer">
+			<div class="left">
+				Persistencia de datos
+			</div>
+			<div class="center">
+				&copy; 2014-15 Escuela Politécnica Superior de Alicante
+			</div>
+			<div class="right">
+				Sesión 7: Migraciones con Core Data
+			</div>	
+		</div>	
+	<section data-markdown="traspas.md">	
+	</section>
+</div>
+</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				slideNumber: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
