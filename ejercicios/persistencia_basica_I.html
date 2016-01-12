@@ -8,7 +8,7 @@
 <body>
 <h1>Ejercicios de persistencia básica 1</h1>
 
-<h2>Property lists</h2>
+<h2>Ejercicio 1: Property lists</h2>
 
 <p>Vamos a realizar una pequeña aplicación en la que los datos se guarden/recuperen de un archivo <code>.plist</code>. Desde el punto de vista del usuario consistirá en una única “pantalla” con un <code>Text View</code> para editar un mensaje y un <code>Label</code> que mostrará la fecha y hora de edición. Los datos deben conservarse aunque salgamos de la aplicación.</p>
 
@@ -98,7 +98,7 @@ dict[@&quot;texto&quot;] = self.mensajeText.text;
 
 <p><strong>Comprobar</strong> que cuando se sale de la aplicación pulsando el botón <code>Home</code> se ha creado el correspondiente archivo <code>.plist</code> con el contenido adecuado.</p>
 
-<h2>Recuperar los datos del .plist</h2>
+<h3>Recuperar los datos del .plist</h3>
 
 <p>Si salimos de la aplicación pulsando el botón <code>Home</code> y volviendo a entrar en ella veremos muy probablemente que se conservan los datos, pero es porque el sistema no ha liberado la memoria. Para recuperarlos al arrancar la aplicación “desde cero”, tenemos que añadir código al <code>viewDidLoad</code> del <em>view controller</em>: (los dos primeros pasos son los mismos que para guardar los datos)</p>
 
@@ -114,7 +114,7 @@ NSDictionary *dict = [[NSDictionary alloc] initWithContentsOfURL:fichURL];
 
 <p><strong>Comprobar</strong> que cuando paramos el simulador y lo volvemos a poner en marcha se recuperan los datos del <code>.plist</code>.</p>
 
-<h2>Preferencias</h2>
+<h2>Ejercicio 2: Preferencias</h2>
 
 <p>Crear una nueva aplicación similar a la anterior pero que almacene y recupere la información usando el mecanismo de preferencias de iOS. </p>
 
