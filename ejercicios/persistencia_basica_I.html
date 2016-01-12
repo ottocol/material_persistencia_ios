@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" type="text/css" href="css/style.css" />
+		<title>Ejercicios de persistencia básica 1</title>
+	</head>
+<body>
+<h1>Ejercicios de persistencia básica 1</h1>
+
+<h2>Property lists</h2>
+
+<p>Vamos a realizar una pequeña aplicación en la que los datos se guarden/recuperen de un archivo <code>.plist</code>. Desde el punto de vista del usuario consistirá en una única “pantalla” con un <code>Text View</code> para editar un mensaje y un <code>Label</code> que mostrará la fecha y hora de edición. Los datos deben conservarse aunque salgamos de la aplicación.</p>
+
+<h3>Interfaz gráfico</h3>
+
+<p>Crea la interfaz:</p>
+
+<ul>
+	<li>Inserta el <code>Text View</code> y el <code>Label</code> en el <em>storyboard</em>. </li>
+	<li>Crea dos <em>outlet</em> en el <code>ViewController.h</code> para acceder al contenido de ambos componentes. Recuerda que tienes que hacer <code>Ctrl+arrastrar</code></li>
+</ul>
+
+<p>Queremos que cuando haga <em>tap</em> en cualquier parte de la pantalla se acabe la edición del <code>Text View</code>. Para ello podemos añadir el siguiente método al <code>ViewController.m</code>:</p>
+
+<pre><code>- (void)touchesBegan:(NSSet&lt;UITouch *&gt; *)touches withEvent:(UIEvent *)event {
+    //CUIDADO: estamos suponiendo que el outlet del text view
+    //se llama &#39;mensajeText&#39;. Cámbialo por el tuyo
+    [self.mensajeText endEditing:YES];
+}
+</code></pre>
+
+<p>Finalmente, queremos detectar cuándo se ha editado el texto del <code>Text View</code>. Para ello tenemos que hacer que el <em>view controller</em> implemente el protocolo <code>UITextViewDelegate</code>. En el <code>ViewController.h</code>:</p>
+
+<pre><code>@interface ViewController : UIViewController &lt;UITextViewDelegate&gt;
+</code></pre>
+
+<p>Y en el <code>ViewController.m</code> podemos detectar cuándo se ha hecho la edición implementando este método:</p>
+
+<pre><code>-(void)textViewDidEndEditing:(UITextView *)textView {
+    NSLog(@&quot;Acabamos de editar&quot;);
+    //esto es una @property de tipo NSDate definida en el .h
+    //que debéis crear vosotros
+    self.fechaMensaje = [NSDate date];
+    //esto es el outlet que referencia al label con la fecha
+    self.fechaLabel.text = [NSDateFormatter
+                      localizedStringFromDate:self.fechaMensaje					      dateStyle:NSDateFormatterMediumStyle
+                      timeStyle:NSDateFormatterShortStyle];
+}
+</code></pre>
+
+<p><strong>Comprobar que lo anterior funciona correctamente</strong>, que al editar el texto y pulsar sobre la pantalla se dispara el método anterior, y en el <em>label</em> se muestra la fecha y hora de edición.</p>
+
+<h3>Detectar que salimos de la aplicación</h3>
+
+<p>Lo primero es detectar cuándo salimos de la aplicación para poder hacer el guardado de los datos en ese momento. Para ello podemos suscribirnos a una notificación del sistema llamada <code>UIApplicationDidEnterBackgroundNotification</code>.</p>
+
+<p>Introducir el siguiente código en el método <code>viewDidLoad</code> del <em>view controller</em>:</p>
+
+<pre><code>NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
+[nc addObserver:self
+        selector:@selector(vamosABackground)
+        name:UIApplicationDidEnterBackgroundNotification
+        object:nil];
+</code></pre>
+
+<p>El código anterior llama al método <code>vamosABackground</code> cuando se recibe la notificación. Para probarlo, podéis hacer una implementación “provisional” del método:</p>
+
+<pre><code>-(void)vamosABackground {
+    NSLog(@&quot;Nos notifican que vamos a background&quot;);
+}
+</code></pre>
+
+<p>Ahora, para probar que esto funciona, hay que arrancar la aplicación y salir de ella como lo haríamos en un dispositivo real, es decir, pulsando sobre el botón <code>Home</code>. Podemos hacerlo en el menú del simulador <code>Hardware &gt; Home</code>, o bien con el atajo de teclado <code>Cmd+Shift+H</code>. Al hacer esto debe aparecer el mensaje en el <em>log</em>. <strong>Comprueba que es así</strong>.</p>
+
+<h3>Almacenar los datos en el .plist</h3>
+
+<p>Queremos guardar el texto del mensaje y la fecha de edición. Podemos almacenar ambos valores usando un <code>NSMutableDictionary</code>. </p>
+
+<p>En el método <code>vamosABackground</code> que hemos creado antes tenemos que:</p>
+
+<ul>
+	<li>Obtener la URL del directorio <code>Documents</code> de la aplicación (consultar apuntes y/o transparencias)</li>
+	<li>Crear a partir de ella la URL del fichero <code>mensaje.plist</code> donde se guardarán los datos (consultar apuntes y/o transparencias)</li>
+	<li>Crear un diccionario con el texto del mensaje y la fecha de edición (adaptadlo a vuestras necesidades)</li>
+</ul>
+
+<pre><code>NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+//fechaMensaje sería la @property de tipo NSDate
+dict[@&quot;fecha&quot;] =self.fechaMensaje;
+//mensajeText sería el outlet que referencia al text view
+dict[@&quot;texto&quot;] = self.mensajeText.text;
+</code></pre>
+
+<ul>
+	<li>Guardar el archivo <code>.plist</code> usando el método <code>writeToURL:atomically</code> del diccionario</li>
+</ul>
+
+<p><strong>Comprobar</strong> que cuando se sale de la aplicación pulsando el botón <code>Home</code> se ha creado el correspondiente archivo <code>.plist</code> con el contenido adecuado.</p>
+
+<h2>Recuperar los datos del .plist</h2>
+
+<p>Si salimos de la aplicación pulsando el botón <code>Home</code> y volviendo a entrar en ella veremos muy probablemente que se conservan los datos, pero es porque el sistema no ha liberado la memoria. Para recuperarlos al arrancar la aplicación “desde cero”, tenemos que añadir código al <code>viewDidLoad</code> del <em>view controller</em>: (los dos primeros pasos son los mismos que para guardar los datos)</p>
+
+<ul>
+	<li>Obtener la URL del directorio <code>Documents</code> de la aplicación (consultar apuntes y/o transparencias)</li>
+	<li>Crear a partir de ella la URL del fichero <code>mensaje.plist</code> donde están los datos (consultar apuntes y/o transparencias)</li>
+	<li>Recuperar el diccionario</li>
+</ul>
+
+<pre><code>//fichURL sería la URL de &#39;mensaje.plist&#39;, creada en el paso anterior
+NSDictionary *dict = [[NSDictionary alloc] initWithContentsOfURL:fichURL];
+</code></pre>
+
+<p><strong>Comprobar</strong> que cuando paramos el simulador y lo volvemos a poner en marcha se recuperan los datos del <code>.plist</code>.</p>
+
+<h2>Preferencias</h2>
+
+<p>Crear una nueva aplicación similar a la anterior pero que almacene y recupere la información usando el mecanismo de preferencias de iOS. </p>
+
+<blockquote>
+<p>Es mejor crear una aplicación nueva, para evitar “interferencias” con el código anterior, aunque tendréis que crear de nuevo los elementos de la interfaz y los <em>outlets</em></p>
+</blockquote>
+
+</body>
+</html>
+
