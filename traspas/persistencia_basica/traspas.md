@@ -148,8 +148,6 @@ NSArray *contenidos = [fileManager
 - El sistema de archivos en iOS
 - ***Property Lists***
 - Preferencias del usuario
-- Serialización ("archiving")
-- Calendarios y eventos 
 
 ---
 
