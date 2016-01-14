@@ -201,382 +201,48 @@ html,body,#wrapper{font-size:10pt!important;}
 </head>
 <body class="normal firstload">
   <div id="wrapper">
-      <h1 id="sesión3:basesdedatosconsqlite">Sesión 3: Bases de datos con SQLite</h1>
+      <h1 id="ejercicio:aplicacióndemensajesconparse1punto">Ejercicio: aplicación de mensajes con Parse (1 punto)</h1>
 
+<p>Vamos a implementar una pequeña <em>app</em> de <em>chat</em>. En principio los mensajes serán visibles por todos los usuarios autentificados, aunque también se podrían mandar mensajes privados.</p>
 
-<ul style="display: block;" id="mkreplaced-toc" class="max-6"><li class="notmissing" style="list-style-type: none;"><ul><li class="notmissing"><a href="#introducciónasqliteenios" data-orig-id="introducciónasqliteenios" class="wiki-link">Introducción a SQLite en iOS</a><ul><li class="notmissing"><a href="#configurarelproyecto" class="wiki-link">Configurar el proyecto</a></li><li class="notmissing"><a href="#crearlabdeincluirlaenelproyecto" class="wiki-link">Crear la BD e incluirla en el proyecto</a></li></ul></li><li class="notmissing"><a href="#elapidesqlite" class="wiki-link">El API de SQLite</a><ul><li class="notmissing"><a href="#accederalabd" class="wiki-link">Acceder a la BD</a><ul><li class="notmissing"><a href="#abrirycerrarlabd" class="wiki-link">Abrir y cerrar la BD</a></li><li class="notmissing"><a href="#abrirlabdcon“permisodeescritura”" data-orig-id="abrirlabdcon“permisodeescritura”" class="wiki-link">Abrir la BD con “permiso de escritura”</a></li></ul></li><li class="notmissing"><a href="#consultasdeselección" data-orig-id="consultasdeselección" class="wiki-link">Consultas de selección</a><ul><li class="notmissing"><a href="#compilaryejecutarunaconsultadeselección" data-orig-id="compilaryejecutarunaconsultadeselección" class="wiki-link">Compilar y ejecutar una consulta de selección</a></li><li class="notmissing"><a href="#fechasensqlite" class="wiki-link">Fechas en SQLite</a></li><li class="notmissing"><a href="#consultasconparámetros" data-orig-id="consultasconparámetros" class="wiki-link">Consultas con parámetros</a></li></ul></li><li class="notmissing"><a href="#consultasdeactualización" data-orig-id="consultasdeactualización" class="wiki-link">Consultas de actualización</a></li></ul></li><li class="notmissing"><a href="#frameworksdeterceros" class="wiki-link">Frameworks de terceros</a><ul><li class="notmissing"><a href="#cocoapods" class="wiki-link">CocoaPods</a></li><li class="notmissing"><a href="#unaintroducciónbásicaafmdb" data-orig-id="unaintroducciónbásicaafmdb" class="wiki-link">Una introducción básica a FMDB</a></li></ul></li><li class="notmissing"><a href="#algunasreferencias" class="wiki-link">Algunas referencias</a></li></ul></li></ul>
+<p>Para ver cómo aparecen no solo nuestros mensajes, sino también los enviados por otros usuarios, <strong>usad la misma aplicación de Parse por grupos</strong>, (por ejemplo cada mesa puede ser un grupo), es decir tenéis que usar en vuestro código las mismas claves.</p>
 
+<p><strong>Lo primero será registrarse en Parse</strong> (solo hará falta que se registre uno de cada grupo), registrar una nueva aplicación en el sitio web <strong>y obtener las claves</strong> de la aplicación. Recordad que todos los del grupo debéis usar las mismas.</p>
 
-
-<h2 id="introducciónasqliteenios">Introducción a SQLite en iOS</h2>
-
-<p>En iOS no hay ningún <em>framework</em> estándar para trabajar con SQLite de forma nativa. Lo más habitual es usar directamente el <a href="http://www.sqlite.org/c3ref/intro.html">API C de la librería</a>. Al ser C un subconjunto de Objective-C (e interoperable con Swift) usar este API no es mayor problema, salvo por el “engorro” de tener que emplear funcionalidades de bajo nivel y tipos de datos de C (<code>char *</code> en lugar de <code>NSString</code>, por ejemplo).</p>
-
-<p>Como vamos a ver, el API es considerablemente de nivel más bajo que los que habéis usado en Android. No es probable que en el futuro aparezca en iOS ningún API de nivel más alto, ya que Apple recomienda el uso del <em>framework</em> “Core data” sobre el uso directo de SQLite (como veremos, Core Data usa habitualmente SQLite de modo interno). No obstante, para casos de uso relativamente sencillos SQLite va a ser una alternativa mucho más ligera en recursos que Core Data. Además SQLite supone una barrera de entrada bastante baja para cualquier desarrollador habituado a trabajar con SQL y bases de datos, cosa que no se puede decir de Core Data.</p>
-
-<h3 id="configurarelproyecto">Configurar el proyecto</h3>
-
-<p>Para poder usar SQLite en un proyecto iOS hay que añadir manualmente la librería, no se añade automáticamente al contrario que otros <em>frameworks</em>. En las propiedades del proyecto, opción <code>General</code>, al final del todo (<code>Linked frameworks and libraries</code>) pulsar sobre <code>+</code> y añadir <code>libsqlite3.dylib</code>.</p>
-
-<figure>
-<img src="assets/add_lib_sqlite.gif" alt="" />
-</figure>
-
-<h3 id="crearlabdeincluirlaenelproyecto">Crear la BD e incluirla en el proyecto</h3>
-
-<p>La forma más típica de incluir la base de datos en el proyecto es copiarla al <em>bundle</em> de la aplicación. </p>
-
-<p>Para ello, en Xcode pulsar con el botón derecho sobre el proyecto y seleccionar la opción de <code>Add files to &quot;(nombre_del_proyecto)&quot;</code>. En el cuadro de diálogo que aparecerá, seleccionar el archivo con la base de datos y asegurarse de que está marcada la casilla <code>Copy items if needed</code>, para asegurarse de que se hace una copia en el directorio del proyecto y no se usa una referencia al archivo original.</p>
-
-<h2 id="elapidesqlite">El API de SQLite</h2>
-
-<h3 id="accederalabd">Acceder a la BD</h3>
-
-<p>Vamos a ver aquí cómo abrir la base de datos para comenzar a trabajar con ella.</p>
-
-<h4 id="abrirycerrarlabd">Abrir y cerrar la BD</h4>
-
-<p>En el API el “objeto” que representa la base de datos es del tipo <code>sqlite3</code> (en realidad no es un objeto sino un <code>struct</code>). En nuestro código tendremos una declaración del estilo</p>
-
-<pre><code>sqlite3 *mi_bd;
-</code></pre>
-
-<p>Para abrir la BD e instanciar este “objeto” se usa la función <code>sqlite3_open </code>, a la que hay que pasarle el <em>path</em> de la base de datos y una referencia a un <em>struct</em> de tipo <code>sqlite3</code></p>
-
-<pre><code>sqlite3 *mi_bd;  
-sqlite3_open(path_db, &amp;mi_bd);
-</code></pre>
-
-<p>Vamos a crear una clase <code>DBManager</code> en la que implementaremos los métodos que interactúan con la base de datos. En esta clase creamos una variable miembro privada para almacenar la referencia a la base de datos:</p>
-
-<pre><code>@implementation DBManager {  
-    sqlite3 *db;  
-}
-</code></pre>
-
-<p>Podemos implementar un inicializador que abra la base de datos suponiendo que está incluida en el <em>bundle</em></p>
-
-<pre><code>- (id)initWithDB:(NSString *)nombre {  
-    self = [super init];  
-    if (self) {  
-        NSString *path = [[NSBundle mainBundle]  
-                          pathForResource:nombre  
-                          ofType:@&quot;db&quot;];  
-        if (sqlite3_open([path UTF8String], &amp;db) == SQLITE_OK)  
-            NSLog(@&quot;BD abierta&quot;);  
-        else  
-            NSLog(@&quot;Error al abrir BD: %s&quot;, sqlite3_errmsg(db));  
-    }
-    return self;  
-}
-</code></pre>
-
-<p>Las llamadas al API de SQLite devuelven la constante <code>SQLITE_OK</code> si no ha habido error. Para comprobar el error generado en su caso podemos usar la función <code>sqlite3_errmsg</code>, que devuelve el mensaje del error más reciente asociado a una llamada hecha al API de SQLite. Hay que pasarle como parámetro la base de datos asociada.</p>
-
-<p>Como ya hemos comentado el API de SQLite al ser C y no Objective-C no usa los tipos de datos de Foundation. El caso más habitual es el de las cadenas de caracteres, que en el API son <code>char *</code> y no <code>NSString</code>. Podemos convertir de <code>NSString *</code> a <code>char *</code> con el método <code>UTF8String</code>. Es lo que usamos para convertir el <em>path</em> del <em>bundle</em> que nos devuelve el API de <code>FileManager</code>.</p>
-
-<p>Para cerrar la base de datos se usa la función <code>sqlite3_close()</code> a la que se le pasa como parámetro el <em>struct</em> con la información de la base de datos.</p>
-
-<h4 id="abrirlabdcon“permisodeescritura”">Abrir la BD con “permiso de escritura”</h4>
-
-<p>Un problema que tiene incluir físicamente la base de datos en el <em>bundle</em> de la aplicación es que este es de solo lectura. Eso quiere decir que no podríamos ejecutar consultas de actualización sobre la base de datos.</p>
-
-<p>La forma más habitual de resolver este problema es crear una copia de la base de datos en algún directorio con permiso de escritura cuando se arranca la aplicación. Típicamente se usa el directorio <code>Documents</code> ya que es el más apropiado para este propósito.</p>
-
-<p>Aquí tenemos un método que copia la BD del <em>bundle</em> al directorio <code>Documents</code>, si es que no se ha copiado ya:</p>
-
-<pre><code>- (NSURL *) copiarDB:(NSString *)nombre {  
-    BOOL existe, ok;
-
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-
-    //Obtenemos la URL del directorio 'Documents'  
-    NSArray *urls = [fileManager URLsForDirectory:NSDocumentDirectory  
-                                inDomains:NSUserDomainMask];  
-    //La copia de la BD estará en este directorio,  
-    //con el nombre especificado y extensión '.db'  
-    NSString *nombreFichDB = [NSString stringWithFormat:@&quot;%@.db&quot;, nombre];  
-    NSURL *copiaURL = [urls[0] URLByAppendingPathComponent:nombreFichDB];  
-    //¿Existe ya esta copia?  
-    existe = [fileManager fileExistsAtPath:[copiaURL path]];  
-    //Si existe, no hay que hacer nada, devolvemos la URL  
-    if (existe)  
-        return copiaURL;  
-    else { //copiar BD de bundle -&gt; documents  
-        //URL de la BD en el bundle  
-        NSURL *dbURL = [[NSBundle mainBundle]  
-                          URLForResource: nombre withExtension:@&quot;db&quot;];  
-        //Copiar el archivo de la BD  
-        NSError *error;  
-        ok = [fileManager copyItemAtURL:dbURL toURL:copiaURL error:&amp;error];  
-        if (!ok) {  
-            NSLog(@&quot;No se ha podido crear una copia de la BD:'%@'.&quot;,  
-                 [error localizedDescription]);  
-            return nil;  
-        }
-        else  
-            return copiaURL;  
-    }
-}
-</code></pre>
-
-<p>Tendremos que modificar el inicializador del apartado anterior para que llame a este método y después no abra la base de datos del <em>bundle</em> sino la de <code>Documents</code>:</p>
-
-<pre><code>- (id)initWithDB:(NSString *)nombre {  
-    self = [super init];  
-    if (self) {  
-        NSURL *urlDB = [self copiarDB:nombre];  
-        if (sqlite3_open([[urlDB path] UTF8String], &amp;db) == SQLITE_OK) {  
-            NSLog(@&quot;BD abierta&quot;); }  
-        else {  
-            NSLog(@&quot;Error al abrir BD: '%s'.&quot;, sqlite3_errmsg(db));  
-        }
-    }  
-    return self;  
-}
-</code></pre>
-
-<h3 id="consultasdeselección">Consultas de selección</h3>
-
-<h4 id="compilaryejecutarunaconsultadeselección">Compilar y ejecutar una consulta de selección</h4>
-
-<p>El esquema general para ejecutar una consulta de selección y recorrer los registros resultantes es el siguiente:</p>
-
-<ol>
-<li>Compilar la <em>query</em> (convertirla de SQL en “modo texto” a un formato “ejecutable” por SQLite)</li>
-<li>Ir avanzando registro a registro por los resultados, mientras queden registros
-
-<ul>
-<li>Obtener los campos que nos interesen del registro actual, sabiendo el número de columna que ocupan</li>
-<li>Habitualmente “empaquetaremos” los valores del registro actual en un objeto de Objective-C, e iremos construyendo una lista de resultados (un <code>NSMutableArray</code>).</li>
-</ul></li>
-<li>Liberar la memoria ocupada por la <em>query</em> compilada</li>
-</ol>
-
-<p>Vamos a ver un ejemplo de código que implementa este esquema:</p>
-
-<pre><code>NSString *querySQL = @&quot;SELECT * FROM alumnos&quot;;  
-sqlite3_stmt *statement;  
-NSMutableArray *lista = [[NSMutableArray alloc] init];
-
-int result = sqlite3_prepare_v2(db, [querySQL UTF8String], -1,  
-                                &amp;statement, NULL);  
-if (result==SQLITE_OK) {  
-   while (sqlite3_step(statement) == SQLITE_ROW) {  
-       char *dni = (char *) sqlite3_column_text(statement, 0);  
-       char *nombre = (char *) sqlite3_column_text(statement, 1);  
-       Alumno *alumno = [[Alumno alloc] init];  
-       alumno.dni = [[NSString alloc] initWithUTF8String:dni];  
-      alumno.nombre = [[NSString alloc] initWithUTF8String:nombre];  
-       [lista addObject:alumno];  
-   }
-}  
-sqlite3_finalize(statement);
-</code></pre>
-
-<ul>
-<li>En la <a href="http://sqlite.org/c3ref/prepare.html">función <code>sqlite3_prepare_v2()</code></a>
-
-<ul>
-<li>Los dos primeros argumentos son el <code>struct</code> que representa la base de datos y la cadena con la <em>query</em>. El cuarto es la dirección del puntero que apuntará a la <em>query</em> compilada por SQLite.</li>
-<li>Aunque en el ejemplo no usamos esta funcionalidad se podrían poner varias sentencias SQL en la misma cadena y compilar solo una de ellas. El tercer argumento de indica la longitud en caracteres que queremos tomar de la <em>query</em> (&#8211;1 indica leer toda la cadena). Con el último argumento (un puntero a puntero) SQLite nos informa qué parte de <em>query</em> queda por ejecutar, en este caso pasamos NULL ya que no nos interesa esta funcionalidad.</li>
-</ul></li>
-<li>Vamos avanzando por los registros con <code>sqlite_step()</code>. Mientras que esta función devuelva <code>SQLITE_ROW</code> tenemos una nueva fila y podemos obtener sus campos con <code>sqlite_column_XXX()</code>, donde <code>XXX</code> es el tipo de campo</li>
-<li>De nuevo tenemos el problema de que como el API de SQLite está en C, usa <code>char *</code> y no <code>NSString</code> por lo que debemos hacer la conversión en los dos sentidos
-
-<ul>
-<li>Definimos el texto de la <em>query</em> como <code>NSString</code> y lo convertimos a a <code>char *</code> con el método <code>UTF8String</code></li>
-<li>Si obtenemos un campo de tipo cadena, lo convertimos a <code>NSString</code> con <code>initWithUTF8String</code>.</li>
-</ul></li>
-<li>Aquí usamos la estrategia de “empaquetar” los datos obtenidos de la BD en un objeto y guardar todos los objetos en un <code>NSMutableArray</code>.</li>
-</ul>
-
-<h4 id="fechasensqlite">Fechas en SQLite</h4>
-
-<p>SQLite no tiene el tipo fecha. Podemos representar una fecha bien en formato cadena o bien como un entero, el típico “UNIX timestamp”. Por ejemplo si sabemos que la fecha está almacenada como un <em>timestamp</em> podríamos hacer algo como:</p>
-
-<pre><code>int unix_time = (int) sqlite3_column_int(statement, 3);  
-Alumno *alumno = [[Alumno alloc] init];  
-alumno.fechaNacimiento = [[NSDate alloc]  
-                             initWithTimeIntervalSince1970:unix_time];
-</code></pre>
-
-<p>También podemos almacenar las fechas en formato cadena (formato <code>año-mes-dia horas:minutos:segundos</code>). Parsear las fechas será algo más tedioso que con <em>timestamps</em>, podéis consultar <a href="http://www.owsiak.org/?p=326">este ejemplo</a>.</p>
-
-<h4 id="consultasconparámetros">Consultas con parámetros</h4>
-
-<p>En el ejemplo del apartado anterior la consulta SQL era una cadena fija pero en muchos casos necesitaremos parametrizar la consulta (por ejemplo obtener todos los alumnos cuyo apellido empiece por una letra, o los nacidos después de una fecha determinada). </p>
-
-<p>Aunque podemos construir el <code>NSString</code> concatenando subcadenas es más “limpio” usar parámetros, que además nos protegen contra posibles intentos de inyección SQL. Al igual que en la mayoría de BD los parámetros se especifican con el símbolo <code>?</code></p>
-
-<pre><code>NSString *querySQL = @&quot;SELECT * FROM alumnos WHERE fecha_nacimiento &lt; ?&quot;;
-</code></pre>
-
-<p>Para instanciar el parámetro con un determinado valor usaremos la familia de funciones <code>sqlite3_bind_XXX</code>, en la que las <code>XXX</code> indican el tipo de datos del parámetro (<code>int</code>, <code>double</code>, <code>text</code>,…). Esta instanciación se debe hacer después de “preparar” la <em>query</em> con <code>sqlite3_prepare_v2</code> pero antes de ejecutarla con <code>sqlite3_step()</code>.</p>
-
-<p>Por ejemplo, vamos a buscar todos los alumnos que tengan más de 18 años (cuya fecha de nacimiento sea anterior a la actual restándole 18 años)</p>
-
-<pre><code>NSString *querySQL = @&quot;SELECT * FROM alumnos WHERE fecha_nacimiento&lt;?&quot;;  
-sqlite3_stmt *statement;
-
-int result = sqlite3_prepare_v2(db, [querySQL UTF8String], -1,  
-                                &amp;statement, NULL);  
-NSCalendar *cal = [NSCalendar currentCalendar];  
-//Calculamos fecha de hoy ([NSDate date]) y le restamos 18 años  
-NSDate *fecha_ref = [cal dateByAddingUnit:NSCalendarUnitYear  
-                         value:-18 toDate:[NSDate date] options:0];  
-sqlite3_bind_int(statement, 1, [fecha_ref timeIntervalSince1970]);
-</code></pre>
-
-<p>Nótese que para instanciar un parámetro debemos conocer su posición y que estas comienzan en 1, no en 0.</p>
-
-<p>En SQLite también se pueden definir parámetros por nombre con el formato <code>:nombre</code>, por ejemplo</p>
-
-<pre><code>NSString *querySQL = @&quot;SELECT * FROM alumnos WHERE fecha_nacimiento &lt; :fecha&quot;;
-</code></pre>
-
-<p>No obstante el API C no nos permite instanciar el parámetro directamente por nombre. Primero debemos obtener su posición con la función <code>sqlite3_bind_parameter_index(sentencia,nombre)</code> y luego aplicar la ya conocida <code>sqlite3_bind_XXX()</code>. </p>
-
-<h3 id="consultasdeactualización">Consultas de actualización</h3>
+<p><strong>Tenéis una plantilla</strong> para no tener que comenzar de cero. Si abrís el <em>storyboard</em> veréis que simplemente hay dos pantallas, una para autentificarse en la aplicación y otra para ver/enviar mensajes.</p>
 
 <blockquote>
-<p>Como ya hemos comentado, para que se puedan ejecutar consultas de actualización sobre la base de datos esta tiene que estar almacenada en un directorio con permisos de escritura</p>
+<p>Acordáos de cambiar en la plantilla las claves de la <em>app</em> por las de vuestro grupo. El código está en el <code>application:didFinishLaunchingWithOptions</code> del <code>AppDelegate</code></p>
 </blockquote>
 
-<p>Las consultas de actualización se manejan de un modo similar a las de selección: se preparan con <code>sqlite3_prepare_v2()</code>, se vinculan los parámetros si estos existen con <code>sqlite3_bind_XXX()</code> y se ejecutan con <code>sqlite3_step()</code>. Por supuesto en ellas no hay bucle para recorrer los resultados.</p>
+<p>Para poder probar la aplicación necesitaréis registrar unos cuantos usuarios. Lo podéis hacer en el <em>dashboard</em> de la web de Parse. En el apartado de “Core”, donde se ven los datos persistentes, podéis crear un nuevo objeto de la clase <code>User</code>(ya está predefinida y aparece en el panel de la izquierda con un pequeño icono de usuario al lado)</p>
 
-<pre><code>Alumno *a;  
-...  
-NSString *querySQL = @&quot;INSERT INTO alumnos (dni, nombre, apellidos,  
-                      fecha_nacimiento) VALUES (?,?,?,?)&quot;;  
-sqlite3_stmt *statement;  
-sqlite3_prepare_v2(db, [querySQL UTF8String], -1, &amp;statement, NULL);  
-sqlite3_bind_text(statement, 1, [a.dni UTF8String], -1, SQLITE_STATIC);  
-sqlite3_bind_text(statement, 2, [a.nombre UTF8String], -1, SQLITE_STATIC);  
-sqlite3_bind_text(statement, 3, [a.apellidos UTF8String], -1, SQLITE_STATIC);  
-sqlite3_bind_int(statement, 4, [a.fechaNacimiento timeIntervalSince1970]);  
-int result = sqlite3_step(statement);  
-if (result==SQLITE_DONE)  
-   NSLog(@&quot;Registro almacenado OK&quot;);
-</code></pre>
-
-<p>Como vemos, cuando se ejecuta con éxito una consulta de actualización, la ejecución devuelve el valor <code>SQLITE_DONE</code>.</p>
-
-<p>Aunque no está directamente relacionado con las consultas de actualización, nótese que el <code>sqlite3_bind_text</code> tiene un par de parámetros adicionales con respecto a <code>sqlite3_bind_int</code>. El primero de ellos se pone a &#8211;1 si queremos que se use toda la cadena para rellenar el valor. El segundo, al ponerlo al valor <code>SQL_STATIC</code> indica que la cadena con el valor estará “viva” al menos hasta que se ejecute la <em>query</em>, de modo que SQLite no necesita hacer una copia, puede usar una referencia. Si no estamos seguros de que siga disponible, podemos poner <code>SQL_TRANSIENT</code>, que forzará a SQLite a hacer una copia del valor.</p>
-
-<p>Podemos contar cuántas filas han sido afectadas por la consulta de actualización (en el ejemplo cuántas filas se han insertado, o sea 1) con la función <code>sqlite3_changes()</code> a la que hay que pasarle el <code>struct</code> que representa a la base de datos:</p>
-
-<pre><code>sqlite3 *db;  
-NSLog(@&quot;Filas afectadas: %d&quot;, sqlite3_changes(db));
-</code></pre>
-
-<h2 id="frameworksdeterceros">Frameworks de terceros</h2>
-
-<p>Ya hemos visto que no hay un API en Objective-C para usar SQLite y que tampoco es de esperar que aparezca ninguno, dado el énfasis que Apple hace en Core Data para las tareas de persistencia. No obstante esto no ha impedido que aparezcan librerías de terceros implementando un API para SQLite que sea de más alto nivel y más sencillo de usar en iOS. De ellos el más conocido es probablemente <a href="https://github.com/ccgus/fmdb">FMDB</a>.</p>
-
-<h3 id="cocoapods">CocoaPods</h3>
-
-<p>La librería FMDB se puede instalar en un proyecto de forma sencilla usando CocoaPods.</p>
-
-<blockquote>
-<p>Cuando se cambia la versión de Xcode es probable que CocoaPods deje de funcionar y haya que reinstalarlo. Para ello, abrir una terminal y ejecutar:</p>
-</blockquote>
-
-<pre><code>pod repo remove master  
-pod setup  
-pod install
-</code></pre>
-
-<p>Recordemos los pasos para trabajar con un proyecto que use dependencias de CocoaPods:</p>
-
-<ol>
-<li><p>Crear el proyecto Xcode como es habitual. Cerrar el proyecto ya que no vamos a trabajar directamente con él sino con un <em>workspace</em> en el que está incluido. </p></li>
-<li><p>Abrir una terminal y en ella moverse hasta el directorio del proyecto. Crear en él un fichero llamado <code>Podfile</code> que contendrá la lista de dependencias, en nuestro caso únicamente FMDB:</p>
-<pre><code class="(null)">source &apos;https://github.com/CocoaPods/Specs.git&apos;
-pod &apos;FMDB&rsquo;</code></pre></li>
-<li><p>Se habrá creado un <em>workspace</em> con el mismo nombre del proyecto original. Abrirlo haciendo doble clic sobre el icono con la extensión <code>xcworkspace</code> (NO sobre el proyecto original). </p>
-
-<figure>
-<img src="assets/icono_workspace.png" alt="" />
-</figure></li>
-<li><p>El <em>workspace</em> abierto contiene el proyecto inicial (sobre el que ahora podemos trabajar) y otro proyecto que contiene las dependencias.</p></li>
-</ol>
-
-<h3 id="unaintroducciónbásicaafmdb">Una introducción básica a FMDB</h3>
-
-<p>Vamos a ver unos cuantos ejemplos de uso de la librería FMDB para que se vea que es bastante más fácil de usar que el API C. La librería tiene varias clases básicas (podéis consultar <em>online</em> la <a href="http://ccgus.github.io/fmdb/html/index.html">referencia del API</a>). De ellas las dos más usadas en un código típico son:</p>
+<p>Implementad las siguientes funcionalidades:</p>
 
 <ul>
-<li><code>FMDatabase</code>, que (ahora sí) es un objeto que representa a la base de datos. Es la clase más importante y con la que se va a interactuar la mayor parte del tiempo. Se usa para abrir/cerrar la conexión y también para ejecutar las consultas.</li>
-<li><code>FMResultSet</code>, que encapsula un conjunto de registros resultado de una consulta de selección. Podemos ir iterando por el conjunto y obtener los campos del registro actual, al igual que con el API C, pero de forma mucho más sencilla: por ejemplo podemos obtener el valor de un campo por nombre, y las llamadas están bastante simplificadas para adaptarse mejor a los casos de uso más típicos.</li>
+<li><strong>Autentificación de usuarios</strong> <em>(0,1 puntos)</em> : cuando se pulsa el botón de <code>login</code> en la pantalla inicial, se llama al método <code>clickBotonEntrar:</code> del <code>ViewController.m</code>. <strong>Escribir aquí el código necesario para efectuar un login con el API de Parse</strong>. Una vez autentificados correctamente, se puede seguir el <em>segue</em> llamado <code>loginOK</code> que nos lleva a la segunda pantalla con el métod <code>performSegue</code> de la clase <code>ViewController</code>.</li>
 </ul>
 
-<p>Por ejemplo, veamos cómo se abriría una base de datos, se ejecutaría una consulta de selección y se iría iterando por el conjunto de registros resultante</p>
-
-<pre><code>    NSString *dbPath = [[NSBundle mainBundle] pathForResource:@&quot;cursos&quot;  
-                     ofType:@&quot;db&quot;];  
-    FMDatabase *db = [FMDatabase databaseWithPath:dbPath];  
-    if (![db open]) {  
-        NSLog(@&quot;Error al abrir BD: %@&quot;, [db lastErrorMessage]);  
-    }
-    else {  
-        NSLog(@&quot;BD abierta&quot;);  
-        FMResultSet *rs = [db executeQuery:@&quot;SELECT * FROM alumnos&quot;];  
-        while ([rs next]) {  
-            NSLog(@&quot;%@&quot;, [rs stringForColumn:@&quot;nombre&quot;]);  
-        }
-        [db close];  
-    }
-</code></pre>
+<p>Con esto pasamos a la segunda pantalla, la de envío/visualización de mensajes, cuyo <em>controller</em> es <code>MensajesViewController</code></p>
 
 <ul>
-<li>Para inicializar la BD necesitamos el <em>path</em> y usamos el método de clase <code>databaseWithPath</code></li>
-<li>Abrir y cerrar la BD es tan sencillo como llamar a <code>open</code> y <code>close</code>. El método <code>open</code> devuelve un valor <em>booleano</em> que indica si se ha abierto o no correctamente. En caso de error en una operación de BD podemos acceder a más información sobre el mismo con los métodos <code>lastErrorMessage</code> o <code>lastErrorCode</code>.</li>
+<li><strong>Envío de mensajes</strong>: <em>(0,4 puntos)</em> cuando se escribe un mensaje en el cuadro de texto de la parte inferior y se pulsa return, se llama al método <code>pulsadoIntroEnMensaje</code> del <code>MensajesViewController</code>. <strong>Escribir aquí el código necesario para guardar el mensaje</strong> en el servidor de Parse, con el texto que se ha escrito y asociado al usuario actual.</li>
+<li><strong>Listado de mensajes</strong> <em>(0,4 puntos)</em>:
+
+<ul>
+<li>Solicitar mensajes al servidor: cuando se carga la pantalla, y también cuando se pulsa el botón “Refresh” la plantilla llama al método <code>obtenerMensajes</code>. <strong>Introducir aquí el código que solicite al servidor la lista de mensajes</strong> ordenados por fecha. Para cada mensaje queremos que también se incluya el usuario relacionado. Ya tenéis definida en la plantilla de <code>MensajesViewController</code> una propiedad <code>NSArray *mensajes</code> para que le asignéis el array que devolverá Parse</li>
+</ul></li>
 </ul>
 
 <blockquote>
-<p>Cuando se abre una BD que no existe, FMDB la crea automáticamente, se puede cambiar este comportamiento llamando a <code>openWithFlags</code> con los parámetros adecuados, en lugar de a <code>open</code>. También se puede usar una BD en memoria si se le pasa <code>NULL</code> como <em>path</em> a <code>databaseWithPath</code></p>
+<p>Recordad que para que forzar a que se redibuje la tabla hay que llamar al método <code>reloadData</code> de la vista de tabla. En nuestro caso, en el <code>MensajesViewController</code> habrá que hacer <code>[self.miTableView reloadData]</code></p>
 </blockquote>
 
 <ul>
-<li>Las consultas se ejecutan con <code>executeQuery</code> y devuelven una instancia de la clase <code>FMResultSet</code>. Para iterar por el <em>resultset</em> usamos el método <code>next</code>.</li>
-<li>Podemos obtener los campos del registro actual con una serie de métodos <code>XXXForColumn:</code>, donde la parte inicial del nombre es el tipo de datos de la columna (<code>string</code>, <code>int</code>, <code>long</code>, <code>date</code>,…). Obsérvese además que se accede a la columna por nombre y no por posición (aunque también se puede acceder por posición con <code>XXXForColumnIndex:</code>).</li>
-</ul>
+<li><p>Mostrar mensajes en la tabla: para ello tendréis que rellenar el código de los métodos <code>numberOfRowsInSection</code> y <code>tableView:cellForRowAtIndexPath:</code>. Recordad que el primero debe devolver el número de elementos que tiene la tabla y que el segundo debe devolver la celda de la fila número <code>indexPath.row</code>. </p></li>
+<li><p><strong>Logout</strong> <em>(0,1 puntos)</em>: en la plantilla, cuando se pulsa este botón se ejecuta el método <code>clickBotonLogout</code>. Incluir aquí el código necesario para hacer <em>logout</em> en Parse y volver a la pantalla anterior. Esto último lo podéis conseguir con</p>
 
-<p>Por supuesto podemos ejecutar consultas con parámetros. El método <code>executeQuery:</code> admite una lista de argumentos con los valores, por ejemplo:</p>
-
-<pre><code>FMResultSet *rs = [db executeQuery:@&quot;SELECT * FROM alumnos  
-                   where fecha_nacimiento&lt;?&quot;, fecha_ref];
-</code></pre>
-
-<p>Los valores deben ser objetos, de modo que si tenemos que insertar por ejemplo un número debemos “empaquetarlo” en un <code>NSNumber</code></p>
-
-<pre><code>FMResultSet *rs = [db executeQuery:@&quot;SELECT * FROM alumnos  
-                   where altura&gt;?&quot;, @1.70];
-</code></pre>
-
-<p>Para ejecutar una consulta de actualización se usa <code>executeUpdate:</code> en lugar de <code>executeQuery</code>.</p>
-
-<p>También podemos usar de forma sencilla parámetros por nombre (algo que en el API C es un poco tedioso). Basta con crear un diccionario con los nombres de los parámetros como claves y los valores deseados, y llamar a <code>executeQuery:withParameterDictionary</code> o a <code>executeUpdate:withParameterDictionary</code>. Por ejemplo:</p>
-
-<pre><code>NSString *query = @&quot;INSERT INTO alumnos (dni, nombre) VALUES (:dni, :nombre)&quot;;  
-NSDictionary *args = @{  
-    @&quot;dni&quot; : @&quot;12222333K&quot;,  
-    @&quot;nombre&quot; : @&quot;Pepito&quot;,  
-};  
-[db executeUpdate:query withParameterDictionary:args];
-</code></pre>
-
-<h2 id="algunasreferencias">Algunas referencias</h2>
-
-<ul>
-<li>Tutoriales:
-
-<ul>
-<li><a href="http://www.appcoda.com/sqlite-database-ios-app-tutorial/">http://www.appcoda.com/sqlite-database-ios-app-tutorial/</a></li>
-<li><a href="http://www.raywenderlich.com/913/sqlite-tutorial-for-ios-making-our-app">http://www.raywenderlich.com/913/sqlite-tutorial-for-ios-making-our-app</a></li>
-</ul></li>
-<li><a href="http://www.owsiak.org/?p=326">iOS and SQL Date formatting</a></li>
+<p>[self dismissViewControllerAnimated:YES completion:nil];</p></li>
 </ul>
 <div style="display:none"><br/>
 <!--This seemingly unnecessary div markup is the only thing keeping this script working after Markdown conversion. Trust me.--><br/>
