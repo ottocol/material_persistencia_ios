@@ -401,17 +401,15 @@ u.password = @&quot;123456&quot;;
 
 <p>Pero esto no lo podemos hacer con los objetos gestionados, porque Core Data es quien debe gestionar su ciclo de vida y por tanto los debe “tener controlados” en cada momento, desde su creación. Lo adecuado es pedirle a Core Data que cree el objeto para nosotros. Podemos usar el método “de conveniencia” <code>insertNewObjectForEntityForName:inManagedObjectContext:</code>. Para llamarlo necesitamos tener acceso al “managed object context”</p>
 
-<pre><code>Usuario *u = [NSEntityDescription insertNewObjectForEntityForName:@&quot;Usuario&quot;  
-  inManagedObjectContext:self.managedObjectContext];  
+<pre><code>AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
+Usuario *u = [NSEntityDescription insertNewObjectForEntityForName:@&quot;Usuario&quot;  
+  inManagedObjectContext:moc];  
 u.login = @&quot;moviles&quot;;  
 u.password = @&quot;123456&quot;;
 </code></pre>
 
-<blockquote>
-<p>Recordemos que el código que inserta automáticamente Xcode cuando marcamos la casilla de “use Core Data” nos da acceso al “managed object context” a través de la propiedad <code>managedObjectContext</code> del <code>Appdelegate</code>. Así que se supone que el código anterior estaría en el <code>Appdelegate</code>.</p>
-</blockquote>
-
-<p>Decimos que el método anterior es “de conveniencia” porque usar directamente el API de más bajo nivel de Core Data implicaría tener que interactuar además de con el contexto también con el “persistent store coordinator” y el “managed object model”. Podemos ver un ejemplo en la explicación del método de la <a href="https://developer.apple.com/library/mac/documentation/Cocoa/Reference/CoreDataFramework/Classes/NSEntityDescription_Class/#//apple_ref/occ/clm/NSEntityDescription/insertNewObjectForEntityForName:inManagedObjectContext:">documentación de Apple</a> (sección “Discussion”). </p>
+<p>Decimos que el método anterior es “de conveniencia” porque usar directamente el API de más bajo nivel de Core Data implicaría tener que interactuar además de con el contexto también con el “persistent store coordinator” y el “managed object model”. Podemos ver un ejemplo del API de “bajo nivel” en la <a href="https://developer.apple.com/library/mac/documentation/Cocoa/Reference/CoreDataFramework/Classes/NSEntityDescription_Class/#//apple_ref/occ/clm/NSEntityDescription/insertNewObjectForEntityForName:inManagedObjectContext:">documentación de Apple</a> (sección “Discussion”). </p>
 
 <h3 id="actualización">Actualización</h3>
 
@@ -441,9 +439,9 @@ NSError *error;
         inManagedObjectContext:self.managedObjectContext];  
 m.texto = @&quot;hola amigos&quot;;  
 m.fecha = [NSDate date];  
-//&quot;usu&quot; es un objeto Usuario gestionado por Core Data  
+//Supongamos &quot;u&quot; un objeto Usuario gestionado por Core Data  
 //Establecemos una relación Mensaje-&gt;Usuario  
-m.usuario = usu;  
+m.usuario = u;  
 //Core Data hace lo propio con Usuario-&gt;&gt;Mensaje (1 a N)  
 NSLog(@&quot;Mensajes del usuario %@&quot;, u.login);  
 for (Mensaje *mensaje in u.mensajes) {  
@@ -465,16 +463,6 @@ c1.comienzo = [NSDate date];
 //Usamos el método de acceso generado por Core Data  
 [usuario addConversacionesObject:c1];  
 ...
-</code></pre>
-
-<blockquote>
-<p>En el caso de las relaciones ordenadas, parece haber un <a href="http://openradar.appspot.com/10114310"><em>bug</em></a> que impide usar los métodos de acceso autogenerados por Core Data. Una alternativa sería usar directamente KVC, por ejemplo</p>
-</blockquote>
-
-<pre><code>//Añadir un mensaje a una conversación  
-NSMutableOrderedSet *mensajes =  
-     [c1 mutableOrderedSetValueForKey:@&quot;mensajes&quot;];  
-[mensajes addObject:m];
 </code></pre>
 
 <h4 id="lectura">Lectura</h4>
