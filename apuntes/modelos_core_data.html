@@ -199,7 +199,7 @@ html,body,#wrapper{font-size:10pt!important;}
 
 <style>#wrapper { max-width:900px; margin:0 auto }</style>
 </head>
-<body class="normal firstload">
+<body class="normal">
   <div id="wrapper">
       <h2 id="modelosdedatosencoredata">Modelos de datos en Core Data</h2>
 
@@ -413,14 +413,16 @@ u.password = @&quot;123456&quot;;
 
 <h3 id="actualización">Actualización</h3>
 
-<p>Una vez le hemos pedido a Core Data un objeto gestionado (sea nuevo o ya existente) podemos cambiar sus propiedades y establecer relaciones con otros objetos. No obstante los cambios solo se harán persistentes cuando guardemos el contexto de persistencia con <code>save</code>:</p>
+<p>Una vez le hemos pedido a Core Data un objeto gestionado (sea nuevo o ya existente) podemos cambiar sus propiedades y establecer relaciones con otros objetos. No obstante los cambios solo se harán persistentes cuando guardemos el contexto de persistencia (el <code>NSManagedObjectContext</code>) con <code>save</code>:</p>
 
 <pre><code>//suponemos &quot;usuario&quot; objeto gestionado por Core Data  
 usuario.login=@&quot;moviles&quot;;  
 usuario.password=@&quot;123456&quot;;  
 NSError *error;  
 //Ahora es cuando se guardará el objeto  
-[self.managedObjectContext save:&amp;error]; 
+AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
+[moc save:&amp;error]; 
 </code></pre>
 
 <p>Dicho de otro modo, los cambios que hacemos en los objetos son cambios únicamente dentro del <em>contexto</em> (o si se quiere decir así, “en la memoria”). Cuando usamos <code>save</code> los cambios se hacen también en el <em>almacenamiento</em> (<em>store</em>).</p>
@@ -434,9 +436,11 @@ NSError *error;
 
 <p>Recordemos que normalmente las relaciones son bidireccionales. Si establecemos una relación entre objetos, <strong>Core Data se encargará automáticamente de actualizar la inversa</strong>. </p>
 
-<pre><code>Mensaje *m = [NSEntityDescription  
+<pre><code>AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
+Mensaje *m = [NSEntityDescription  
         insertNewObjectForEntityForName:@&quot;Mensaje&quot;  
-        inManagedObjectContext:self.managedObjectContext];  
+        inManagedObjectContext:moc];  
 m.texto = @&quot;hola amigos&quot;;  
 m.fecha = [NSDate date];  
 //Supongamos &quot;u&quot; un objeto Usuario gestionado por Core Data  
