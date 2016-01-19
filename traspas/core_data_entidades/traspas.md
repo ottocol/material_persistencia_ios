@@ -81,12 +81,14 @@ for (NSManagedObject *obj in resultados) {
 - Ya vimos en la sesión anterior cómo crear y guardar un objeto gestionado. Ahora podemos hacer lo mismo usando nuestras propias clases, sin KVC
 
 ```objectivec
+AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
 Usuario *u = [NSEntityDescription insertNewObjectForEntityForName:@"Usuario"
-              inManagedObjectContext:self.managedObjectContext];
+              inManagedObjectContext:moc];
 u.login = @"moviles";
 u.password = @"123456";
 NSError *error;
-[self.managedObjectContext save:&error];
+[moc save:&error];
 ```
 
 ---
@@ -116,7 +118,9 @@ c1.comienzo = [NSDate date];
 - Eliminar un objeto del contexto: `deleteObject` sobre el contexto
 
 ```objectivec
-[self.managedObjectContext deleteObject:usuario1]
+AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
+[moc deleteObject:usuario1]
 ```
 
 - `deleteObject` no elimina el objeto del almacén persistente. Para eso tendremos que ejecutar `save`
@@ -131,7 +135,9 @@ c1.comienzo = [NSDate date];
 - Es posible que tras  `deleteObject` las actualizaciones no se propaguen de manera inmediata por el grafo de objetos. Para forzar la propagación:
 
 ```objectivec
-[self.managedObjectContext processPendingChanges];
+AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
+NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
+[moc processPendingChanges];
 ```
 
 ---
