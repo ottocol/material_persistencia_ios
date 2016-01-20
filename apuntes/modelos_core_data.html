@@ -199,7 +199,7 @@ html,body,#wrapper{font-size:10pt!important;}
 
 <style>#wrapper { max-width:900px; margin:0 auto }</style>
 </head>
-<body class="normal">
+<body class="normal firstload">
   <div id="wrapper">
       <h2 id="modelosdedatosencoredata">Modelos de datos en Core Data</h2>
 
@@ -467,6 +467,16 @@ c1.comienzo = [NSDate date];
 //Usamos el método de acceso generado por Core Data  
 [usuario addConversacionesObject:c1];  
 ...
+</code></pre>
+
+<blockquote>
+<p>En el caso de las relaciones ordenadas, parece haber un <a href="http://openradar.appspot.com/10114310"><em>bug</em></a> en el código autogenerado por XCode. Una alternativa sería usar directamente KVC, por ejemplo</p>
+</blockquote>
+
+<pre><code>//Añadir un mensaje a una conversación  
+NSMutableOrderedSet *mensajes =  
+     [c1 mutableOrderedSetValueForKey:@&quot;mensajes&quot;];  
+[mensajes addObject:m];
 </code></pre>
 
 <h4 id="lectura">Lectura</h4>
