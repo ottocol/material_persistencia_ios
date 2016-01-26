@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 9: Migraciones de datos en Core Data
+##iOS, sesión 10: Migraciones de datos en Core Data
 
 
 ---
@@ -27,11 +27,11 @@ The model used to open the store is incompatible with the one used to create the
 
 ## Gestionar versiones del modelo
 
-- En lugar de ir modificando el mismo archivo físicoPodemos tener varias versiones del mismo `.xcdatamodeld`. En realidad serán distintos archivos, pero Xcode nos los muestra como un *bundle*
+- Podemos tener **varias versiones del mismo `.xcdatamodeld`**. Físicamente serán distintos archivos, pero Xcode nos los muestra como un *bundle*
 
 ![](img/versiones_modelos.png)
 
-- En cada momento tenemos fijada cuál es la versión actual
+- En cada momento especificamos cuál es la **versión actual**
 
 ---
 
