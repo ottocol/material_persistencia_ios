@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 5: ¡Hola Core Data!
+##iOS, sesión 3: ¡Hola Core Data!
 
 
 ---
@@ -9,8 +9,8 @@
 
 - **Qué es Core Data**
 - El *stack* de Core Data
-- Crear y guardar objetos
-- Recuperar objetos
+- Entidades
+- Crear, guardar y recuperar objetos
 
 ---
 
@@ -20,7 +20,7 @@ El *framework* de persistencia de iOS. Almacena de forma **persistente los objet
 
 ---
 
-## Core Data es un ORM...
+## Core Data es un ORM
 
 - *Object Relational Mapper*, permite almacenar de forma persistente objetos en una base de datos relacional (SQLite)
 - Los que hayáis usado JPA(Java), Entity Framework(.NET), Doctrine (PHP), Active Record (Ruby), ... veréis ideas muy similares (y terminología, en algunos casos)
@@ -30,7 +30,7 @@ El *framework* de persistencia de iOS. Almacena de forma **persistente los objet
 ## ... bueno, no, en realidad no lo es
 
 
-- Estrictamente hablando, **no es un ORM** ya que no soporta más que SQLite y además soporta otros almacenes de datos no relacionales (datos en memoria, archivos XML - solo OSX, almacenes propios,...)
+Estrictamente hablando, **no es un ORM** ya que no soporta más que SQLite y además soporta otros almacenes de datos no relacionales (datos en memoria, archivos XML - *solo en OSX*, almacenes propios,...)
 
 ---
 
@@ -47,13 +47,16 @@ For a very simple application it is certainly the case that Core Data adds some 
 
 - Qué es Core Data
 - **El *stack* de Core Data**
-- Crear y guardar objetos
-- Recuperar objetos
+- Entidades
+- Crear, guardar y recuperar objetos
 
 
 ---
 
 ![](img/diagrama_core_data.png)
+
+Tomado del libro "Pro Core Data for iOS" (2nd ed.), Apress 2011, pág 30
+<!-- .element: style="font-size:0.5em" -->
 
 ---
 
@@ -94,32 +97,33 @@ For a very simple application it is certainly the case that Core Data adds some 
 
 ## Inicializar el *stack*
 
-```objectivec
-//El proyecto de Xcode se llama "TestCoreData"  
-//inicializar el modelo de objetos
- NSURL *modelURL = [[NSBundle mainBundle] 
-                     URLForResource:@"TestCoreData"
-                     withExtension:@"momd"];
- NSManagedObjectModel *managedObjectModel = 
-        [[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL];
-     
- //Inicializar el persistent store coordinator y asociarlo al modelo
- NSPersistentStoreCoordinator *persistentStoreCoordinator = 
-        [[NSPersistentStoreCoordinator alloc] 
-              initWithManagedObjectModel:managedObjectModel];
- NSURL *documentsURL = [[[NSFileManager defaultManager] 
-     URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] 
-     lastObject];
- NSURL *storeURL = [documentsURL 
-                     URLByAppendingPathComponent:@"TestCoreData.sqlite"];
- NSError *error = nil;
- [persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType 
-      configuration:nil URL:storeURL options:nil error:&error];
-     
- //Inicializar el Managed Object Context y asociarlo al coordinator
- NSManagedObjectContext *managedObjectContext = 
-                             [[NSManagedObjectContext alloc] init];
- [managedObjectContext setPersistentStoreCoordinator:persistentStoreCoordinator];
+Para trabajar con Core Data necesitamos inicializar todas estas clases. Si al crear un nuevo proyecto marcamos la casilla `Use Core Data`, Xcode insertará código que lo hará por nosotros
+
+A partir de iOS10 este código es muy sencillo, se include en el `delegate:
+
+```swift
+lazy var persistentContainer: NSPersistentContainer = {
+   let container = NSPersistentContainer(name: "PruebaCoreData")
+    container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+        if let error = error as NSError? {
+             fatalError("Unresolved error \(error), \(error.userInfo)")
+        }
+    })
+    return container
+}()
+```
+
+---
+
+## Usar el *stack*
+
+Normalmente nos basta con acceder al contexto
+
+```swift
+if let miDelegate = UIApplication.shared.delegate as? AppDelegate {
+    let miContexto = miDelegate.persistentContainer.viewContext
+    ...
+} 
 ```
 
 ---
@@ -128,50 +132,94 @@ For a very simple application it is certainly the case that Core Data adds some 
 
 - Qué es Core Data
 - El *stack* de Core Data
-- **Crear y guardar objetos**
-- Recuperar objetos
+- **Entidades**
+- Crear, guardar y recuperar objetos
 
+---
+
+Las entidades son los tipos de objetos que queremos hacer persistentes. Se corresponderían con las tablas de la base de datos
+
+Se pueden crear por código pero típicamente se crean en un editor "gráfico"
+
+![](img/editar_entidad.png)
+
+---
+
+## Puntos a tratar
+
+- Qué es Core Data
+- El *stack* de Core Data
+- Entidades
+- **Crear, guardar y recuperar objetos**
 
 ---
 
 ## Crear un objeto gestionado
 
-- No podemos hacerlo con `alloc` e `init`, Core Data debe gestionar el ciclo de vida del objeto: desde que nace hasta que desaparece
+No podemos hacerlo con un inicializador, Core Data debe gestionar el ciclo de vida del objeto: desde que nace hasta que desaparece
 
-```objectivec
-//obtenemos el delegate, ya que es donde está el código de acceso a Core Data
-AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];
+```swift
+import CoreData
 
-//Para crear objetos persistentes necesitamos el contexto
-NSManagedObjectContext *miContexto = [miDelegate managedObjectContext];
-
-//Vamos a crear un objeto gestionado por Core Data
-NSManagedObject *nuevaNota = [NSEntityDescription 
-     insertNewObjectForEntityForName:@"Nota" 
-     inManagedObjectContext:miContexto];
+if let miDelegate = UIApplication.shared.delegate as? AppDelegate {
+    let miContexto = miDelegate.persistentContainer.viewContext
+    let nuevaNota = NSEntityDescription.insertNewObject(forEntityName: "Nota", 
+                                                        into: miContexto)
+}
 ```
+
+`nuevaNota` es de la clase `NSManagedObject`, propia de Core Data
 
 ---
 
 ## Rellenar los campos del objeto gestionado
 
+`NSManagedObject` es una clase "genérica", podemos acceder a las propiedades de nuestra entidad usando un mecanismo llamado KVC (Key-Value Coding)
 
-- `NSManagedObject` es una clase "genérica", podemos acceder a las propiedades de nuestra entidad usando KVC
+Modificar las propiedades:
 
-```objectivec
-[nuevaNota setValue:[NSDate date] forKey:@"fecha"];
-[nuevaNota setValue:@"Core Data es genial!!...o no" forKey:@"texto"];
+```swift
+nuevaNota.setValue("probando notas", forKey: "texto")
+nuevaNota.setValue(Date(), forKey: "fecha")
+```
+
+Obtener las propiedades
+
+```swift
+//ponemos el ! porque value(forKey:) devuelve un opcional
+nuevaNota.value(forKey: "texto")!
 ```
 
 ---
 
 ## Guardar los objetos en el almacenamiento persistente
 
-- `save` sobre el contexto guarda todos los cambios en el grafo de objetos gestionados
+`save` sobre el contexto guarda todos los cambios en el grafo de objetos gestionados, de la memoria al almacenamiento persistente
 
-```objectivec
-NSError *error;
-[miContexto save:&error];
+```swift
+//miContexto es el contexto de Core Data, hay que obtenerlo antes
+do {
+   try miContexto.save()
+} catch {
+   print("Error al guardar el contexto: \(error)")
+}
+```
+
+---
+
+## Recuperar objetos
+
+Se hace con *fetch requests*, el equivalente a las consultas de SQL. Ya veremos la sintaxis. El siguiente ejemplo simplemente obtiene todas las entidades de un tipo (como un `SELECT * FROM` sin `WHERE`)
+
+```swift
+let request : NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName:"Nota")
+//"miContexto" es el contexto de Core Data 
+//FALTA el código que obtiene "miContexto", como se ha hecho en ejemplos anteriores
+if let notas = try? miContexto.fetch(request) as! [NSManagedObject] {
+   for nota in notas {
+       print(nota.value(forKey: "texto")!)
+   }
+}
 ```
 
 ---

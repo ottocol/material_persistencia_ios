@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 6: Modelos de datos en Core Data
+##iOS, sesión 4: Modelos de datos en Core Data
 
 
 ---
@@ -9,8 +9,6 @@
 
 - **Creación y edición del modelo de datos**
 - CRUD de objetos gestionados
-- Validación
-- Deshacer y rehacer
 
 
 ---
@@ -30,9 +28,7 @@
 
 ## Crear y editar el modelo de datos
 
-- En el archivo `.xcdatamodeld`
-- Xcode tiene un editor visual
-
+Ya hemos visto que Xcode tiene un editor visual, vamos a verlo con más detalle
 
 ---
 
@@ -42,26 +38,29 @@
 
 ## Todas las entidades son `NSManagedObject`
 
-- En la primera sesión, las notas estaban representadas en el código por `NSManagedObject`, y accedíamos a las propiedades con KVC
+En la sesión anterior, las notas estaban representadas en el código por `NSManagedObject`, y accedíamos a las propiedades con KVC
 
-```objectivec
-for (NSManagedObject *obj in resultados) {
-    NSLog(@"%@", [obj valueForKey:@"texto"]);
+```swift
+for objeto in resultados {
+    print(obj.value(forKey:"texto")!
 } 
 ```
 
-- Si hay varias entidades, tratarlas todas como `NSManagedObject` hace que el  código sea algo confuso
+Si en el modelo hay varias entidades, tratarlas todas como `NSManagedObject` hace el código algo confuso, además de que KVC es un poco tedioso.
 
 ---
 
 ## Clases propias como entidades
 
-- Es mejor definir nuestras propias clases Obj-C: `Usuario`, `Mensaje`, `Conversacion`,... y usarlas como entidades
+- Es mejor definir nuestras propias clases Swift/Obj-C: `Usuario`, `Mensaje`, `Conversacion`,... y usarlas como entidades
 - Xcode nos puede generar el esqueleto de la clase, junto con *getters* y *setters* para propiedades y relaciones.
 
 ---
 
 # DEMO: generar subclases de `NSManagedObject`
+
+1. Generar las clases manualmente
+2. Generación automática
 
 ---
 
@@ -70,159 +69,157 @@ for (NSManagedObject *obj in resultados) {
 
 - Creación y edición del modelo de datos
 - **CRUD de objetos gestionados**
-- Validación
-- Deshacer y rehacer
 
 
 ---
 
-## Creación 
+Las operaciones más comunes sobre los objetos gestionados son crear, listar, actualizar y borrar, lo que típicamente se conoce como **CRUD (Create/Read/Update/Delete)**
 
-- Ya vimos en la sesión anterior cómo crear y guardar un objeto gestionado. Ahora podemos hacer lo mismo usando nuestras propias clases, sin KVC
+---
 
-```objectivec
-AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
-NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
-Usuario *u = [NSEntityDescription insertNewObjectForEntityForName:@"Usuario"
-              inManagedObjectContext:moc];
-u.login = @"moviles";
-u.password = @"123456";
-NSError *error;
-[moc save:&error];
+## Creación y asignación de valores
+
+Ya vimos en la sesión anterior cómo crear y guardar un objeto gestionado. Ahora podemos hacer lo mismo usando nuestras propias clases, sin KVC
+
+```swift
+let miDelegate = UIApplication.shared.delegate as! AppDelegate {
+let miContexto = miDelegate.persistentContainer.viewContext
+let u = NSEntityDescription.insertNewObject(forEntityName: "Usuario", into: miContexto) as! Usuario
+u.login = "Pepe"
+u.password = "123456"
+try! miContexto.save()
 ```
 
 ---
 
-## Actualización
+## ¡¡Cuidado!!
 
-- Simplemente cambiar las propiedades o establecer relaciones y volver a llamar a `save`
-- Recordemos que Xcode genera "accesores" para las relaciones "a uno" y "a muchos". También podríamos modificar directamente la propiedad asociada.
+Esto NO es correcto, como ya se ha dicho Core Data tiene que gestionar el ciclo de vida completo del objeto
 
-```objectivec
-Conversacion *c1;
-...
-//Sup. c1 un objeto gestionado por Core Data
-c1.comienzo = [NSDate date];
-//El usuario empieza a participar en una conversación
-//Usamos el método de acceso generado por Core Data
-[usuario addConversacionesObject:c1];
-...
+```swift
+var usuario = Usuario()
+usuario.login = "Pepe"
 ```
 
-- Cuando establecemos una relación Core Data **actualiza automáticamente la inversa**
+O creamos el objeto con `insertNewObject` o lo obtenemos de los que ya existen con una *fetch request*
 
 ---
 
-## Borrado
+## Manejar las relaciones "a uno"
 
-- Eliminar un objeto del contexto: `deleteObject` sobre el contexto
+Xcode crea campos que representan en realidad las relaciones
 
-```objectivec
-AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
-NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
-[moc deleteObject:usuario1]
+relaciones *a uno*: para establecer la relación simplemente asignar el valor
+
+```swift
+let u = NSEntityDescription.insertNewObject(forEntityName: "Usuario", into: miContexto) as! Usuario
+u.login = "Pepe"
+let m = NSEntityDescription.insertNewObject(forEntityName: "Mensaje", into: miContexto) as! Mensaje
+m.texto = "Hola, soy Pepe"
+m.usuario = u
 ```
 
-- `deleteObject` no elimina el objeto del almacén persistente. Para eso tendremos que ejecutar `save`
+---
 
-- Al hacer `deleteObject` se ejecutan las reglas de borrado. Si se usara `Cascade` para `Conversacion` ->> `Mensaje`, al borrar una conversación se eliminarían todos sus mensajes. 
+## Establecer una relación y la inversa
+
+Cuando establecemos una relación Core Data **actualiza automáticamente la inversa**
+
+```swift
+let m = NSEntityDescription.insertNewObject(forEntityName: "Mensaje", into:miContexto) as! Mensaje 
+m.texto = @"hola amigos"
+m.fecha = Date()
+//Supongamos "u" un objeto Usuario gestionado por Core Data
+//Establecemos una relación Mensaje->Usuario
+m.usuario = u;
+//Core Data hace lo propio con Usuario->>Mensaje (1 a N)
+print("Mensajes del usuario \(u.login)")
+for mensaje in u.mensajes {
+        print("\(mensaje.fecha) \(mensaje.texto)")
+}
+```
+
+---
+
+## Manejar las relaciones "a muchos"
+
+Xcode crea *accesores*, métodos para añadir/modificar/eliminar elementos de una relación *a muchos*
+
+```swift
+let miDelegate = UIApplication.shared.delegate as! AppDelegate {
+let miContexto = miDelegate.persistentContainer.viewContext
+let u = NSEntityDescription.insertNewObject(forEntityName: "Usuario", into: miContexto) as! Usuario
+u.login = "Pepe"
+u.password = "123456"
+let m = NSEntityDescription.insertNewObject(forEntityName: "Mensaje", into: miContexto) as! Mensaje
+m.texto = "hola, soy Pepe"
+m.fecha = Date()
+u.addToMensajes(m)
+try! miContexto.save() 
+```
+
+
+---
+
+## Leer objetos
+
+Para obtener los objetos del almacenamiento persistente se usan *fetch requests*
+
+```swift
+//Creamos la fetch request y decimos que devuelve usuarios
+let request : NSFetchRequest<Usuario> = NSFetchRequest(entityName:"Usuario")
+//La ejecutamos (deberíamos detectar errores con do...catch, es para acortar el ejemplo)
+let usuarios = try! miContexto.fetch(request)
+//recorremos los resultados
+for usuario in usuarios {
+    print(usuario.login!)
+}
+```
+
+
+---
+
+## Actualización de los objetos gestionados
+
+Nada especial, simplemente cambiar las propiedades y volver a llamar a `save`
+
+```swift
+//suponemos "usuario" objeto gestionado por Core Data
+//es decir, se ha obtenido con `insertNewObject` o una fetch request
+usuario.login=@"moviles";
+usuario.password=@"123456";
+
+//AHORA es cuando se guardan las modificaciones de modo persistente
+try! miContexto.save() 
+```
+
+
+---
+
+## Borrado de los objetos gestionados
+
+Eliminar un objeto del contexto: `delete` sobre el contexto
+
+```swift
+//borrar todos los usuarios
+let request : NSFetchRequest<Usuario> = NSFetchRequest(entityName:"Usuario")
+let usuarios = try! miContexto.fetch(request)
+//recorremos los resultados y vamos borrando
+for usuario in usuarios {
+    miContexto.delete(usuario)
+}
+```
+
+- `delete` no elimina el objeto del almacén persistente. Para eso tendremos que ejecutar `save`
+
+- Al hacer `delete` se ejecutan las reglas de borrado. Por ejemplo, si se usara `Cascade` para `Conversacion` ->> `Mensaje`, al borrar una conversación se eliminarían todos sus mensajes. 
 
 ---
 
 ## Actualizar cambios pendientes
 
+Es posible que tras  `delete` las actualizaciones no se propaguen de manera inmediata por el grafo de objetos. Para forzar la propagación, el contexto debe llamar a `processPendingChanges()`
 
-- Es posible que tras  `deleteObject` las actualizaciones no se propaguen de manera inmediata por el grafo de objetos. Para forzar la propagación:
-
-```objectivec
-AppDelegate *miDelegate = [[UIApplication sharedApplication] delegate];  
-NSManagedObjectContext *moc = miDelegate.managedObjectContext;  
-[moc processPendingChanges];
-```
-
----
-
-## Puntos a tratar
-
-- Creación y edición del modelo de datos
-- CRUD de objetos gestionados
-- **Validación**
-- Deshacer y rehacer
-
----
-
-## Validación
-
-- Se hace automáticamente al guardar el contexto de persistencia. Si algún objeto o relación no cumple con las reglas de validación, `save` generará un error indicándolo.
-
-- En cualquier momento podemos comprobar manualmente si un determinado valor sería válido para una propiedad con `validateValue:forKey:error`.
-
----
-
-## Validación propia
-
-- Definir en la clase de la entidad métodos `validateXXX:error:`  donde `XXX` es la propiedad a validar
-
-```objectivec
-- (BOOL) validateFecha:(id *)valor error:(NSError **)error {
-   NSDate *fecha = (NSDate *)(*valor);
-   if ([[NSDate date] timeIntervalSinceDate:fecha]>=0) {
-       return YES;
-   }
-   else {
-       if (error!=NULL) {
-          NSDictionary *dict = @{
-               NSLocalizedDescriptionKey : 
-                  @"La fecha no puede estar en el futuro"
-          };
-          (*error) = [[NSError alloc] initWithDomain:@"MiApp" 
-                      code:1 userInfo:dict];
-       }
-       return NO;
-   }
-}
-```
-
----
-
-## Puntos a tratar
-
-- Creación y edición del modelo de datos
-- CRUD de objetos gestionados
-- Validación
-- **Deshacer y rehacer**
-
----
-
-## Deshacer y rehacer
-
-- Se pueden deshacer y rehacer las operaciones con objetos gestionados. De esto se encarga el *undo manager*, un objeto de la clase `NSUndoManager`. 
-- Es tan simple como llamar a los métodos `undo` y `redo` del *undo manager*
-
----
-
-## Activar el *undo manager*
-
-- En iOS no está activado por defecto. Se puede aprovechar la inicialización del contexto
-
-```objectivec
-//"getter" de la plantilla generada al marcar "use Core Data"
-- (NSManagedObjectContext *)managedObjectContext {
-  ...
-  [_managedObjectContext setPersistentStoreCoordinator:coordinator];
-  NSUndoManager *undoManager = [[NSUndoManager alloc] init];
-  [_managedObjectContext setUndoManager:undoManager];
-
-  return _managedObjectContext;
-}
-```
-
----
-
-## Grouping
-
-- Por defecto se agrupan las operaciones efectuadas en la última ejecución de código por parte de la aplicación
-- Podemos gestionar manualmente los grupos con `beginUndoGrouping` y `endUndoGrouping`
 
 ---
 
