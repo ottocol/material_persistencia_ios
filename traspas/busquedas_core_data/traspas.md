@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 7: Búsquedas en Core Data
+##iOS, sesión 6: Búsquedas en Core Data
 
 
 ---
@@ -10,54 +10,32 @@
 - **Predicados y *fetch requests***
 - Predicados como cadenas
 - *Fetch request templates*
-- Predicados como objetos
 - Ordenación
 
 ---
 
 ## Fetch requests
 
-```objectivec
-NSFetchRequest *request = [NSFetchRequest fetchRequestWithEntityName:@"Usuario"];
-//Necesitamos el contexto de persistencia!!!
-ManagedObjectContext *miContexto = ...
-NSError *error;
-NSArray *results = [miContexto executeFetchRequest:request
-                   error:&error];
-```
+**Predicados**: condiciones para filtrar los resultados de una *fetch request*. Como el `WHERE` de SQL.
 
-- Nos falta poder **filtrar** los resultados
-
----
-
-## NSPredicate
-
-- Hace el papel del `WHERE` de SQL
-
-```objectivec
-NSFetchRequest *request = [NSFetchRequest fetchRequestWithEntityName:@"Usuario"];
-NSPredicate *pred = [NSPredicate predicateWithFormat:@"localidad = 'Alicante'"];
-request.predicate = pred;
-...
-```
-
----
-
-## NSPredicate no es exclusivo de Core Data
-
-- En realidad `NSPredicate` proviene de `Foundation`. Se puede usar independientemente de Core Data
-
-```objectivec
-NSArray *resultados = [miContexto executeFetchRequest:query error:nil];
-NSPredicate *pred = [NSPredicate predicateWithFormat:@"login BEGINSWITH 'usu'"];
-NSArray *filtrados = [resultados filteredArrayUsingPredicate:pred]; 
+```swift
+let miDelegate = UIApplication.shared.delegate as! AppDelegate 
+let miContexto = miDelegate.persistentContainer.viewContext
+let request = NSFetchRequest<Mensaje>(entityName: "Mensaje")
+let pred = NSPredicate(format: "texto CONTAINS 'iOS'")
+request.predicate = pred
+let resultados = try! miContexto.fetch(request)
+print("Hay \(resultados.count) resultados")
+for mensaje in resultados {
+    print(mensaje.texto!)
+}
 ```
 
 ---
 
 ## Formas de definir predicados
 
-- **Como una cadena de formato** usando expresiones y operadores del lenguaje de consultas, mezclados con caracteres de formato (al estilo `NSLog` o `printf`)
+- **Como una cadena de formato** usando expresiones y operadores del lenguaje de consultas, mezclados con caracteres de formato (al estilo `printf`)
 
 - **Como un *template***: ídem a lo anterior pero podemos usar variables con nombre
 
@@ -70,7 +48,6 @@ NSArray *filtrados = [resultados filteredArrayUsingPredicate:pred];
 - Predicados y *fetch requests*
 - **Predicados como cadenas**
 - *Fetch request templates*
-- Predicados como objetos
 - Ordenación
 
 ---
@@ -96,7 +73,7 @@ NSArray *filtrados = [resultados filteredArrayUsingPredicate:pred];
 - Por defecto distinguen mayúsculas/minúsculas y símbolos diacríticos (a-à-á-ä)
 - Si después del operador hay un símbolo `[c]` indicamos que no queremos distinguir mayúsculas/minúsculas, y `[d]` ídem con los diacríticos
 
-```objectivec
+```swift
 localidad CONTAINS[c] 'san'
 ```
 
@@ -104,17 +81,11 @@ localidad CONTAINS[c] 'san'
 
 ## Caracteres de formato
 
-- Los mismos que se usan en `NSLog`
+- Muy similares a los que se usan en C en el `printf`: `%i` es un entero, `%f` un real, `%@` es un objeto (este no existe en C)
 
-```objectivec
-NSString *cadena = @"can";
-NSCalendar *cal = [NSCalendar currentCalendar];
-NSDate *fechaRef = [cal dateWithEra:1 year:1980 month:1 day:1 
-                    hour:0 minute:0 second:0 nanosecond:0];
-NSPredicate *pred = [NSPredicate 
-                      predicateWithFormat:@"(localidad CONTAINS[c] %@) AND 
-                                          (fechaNacimiento>%@)", cadena, fechaRef];
-
+```swift
+let cadena = "iOS"
+NSPredicate(format: "texto CONTAINS %@ AND fecha<%@", argumentArray: ["iOS", Date()])
 ```
 
 
@@ -125,12 +96,13 @@ NSPredicate *pred = [NSPredicate
 - Como hemos visto antes, las cadenas se ponen entre comillas (simples o dobles). El formateo lo tiene en cuenta, pero habrá un problema si ponemos el nombre de una propiedad
 
 
-```objectivec
-NSString *atributo = @"login";
-NSString *subcadena = @"usu";
-NSPredicate *pred = [NSPredicate 
-         predicateWithFormat:@"%@ CONTAINS[c] %@", atributo, subcadena];
+```swift
+let atributo = "login";
+let subcadena = "pep";
+let pred = NSPredicate(format:"%@ CONTAINS[c] %@", argumentArray:[atributo, subcadena]);
 ```
+
+generaría esto, que es incorrecto
 
 ```bash
 "login" CONTAINS[c] "usu"
@@ -143,9 +115,8 @@ NSPredicate *pred = [NSPredicate
 
 - Solución: usar el carácter de formato `%K` (de *keypath*) para especificar propiedades, no inserta comillas
 
-```objectivec
-NSPredicate *pred = [NSPredicate
-                      predicateWithFormat:@"%K CONTAINS[c] %@", atributo, subcadena];
+```swift
+let pred = NSPredicate(format:"%K CONTAINS[c] %@", argumentArray:[atributo, subcadena]);
 ```
 
 ---
@@ -155,7 +126,6 @@ NSPredicate *pred = [NSPredicate
 - Predicados y *fetch requests*
 - Predicados como cadenas
 - ***Fetch request templates***
-- Predicados como objetos
 - Ordenación
 
 
@@ -169,23 +139,36 @@ NSPredicate *pred = [NSPredicate
 
 ![](img/fetch_request_template.png)
 
-- Podemos poner **variables**
+- Podemos poner **variables**: nombres con `$`: `$login`, `$cadena_buscada`
+
+---
+
+
+¡Cuidado con el editor visual! en modo asistente a veces pone más comillas de la cuenta
+
+![](img/fetch_template_asistente.png)
+
+oops!
+
+![](img/fetch_template_texto_oops.png)
 
 ---
 
 ## Ejecutar una *fetch request template*
 
 
-![](img/fetch_request_template.png)
+![](img/fetch_template.png)
 
 
-```objectivec
-NSManagedObjectModel *miModelo = ...
-//Buscamos 'Alicante', 'Alacant', 'Candanchú'....
-NSDictionary *dict = @{ @"subcadena" : @"can"};
-NSFetchRequest *query = [miModelo 
-                            fetchRequestFromTemplateWithName:@"buscarLocalidad"
-                             substitutionVariables:dict];
+```swift
+let dictVars = ["cadena":"iOS"]
+if let queryTmpl = miModelo.fetchRequestFromTemplate(withName: "textoContiene", substitutionVariables: dictVars) {
+    let results = try! miContexto.fetch(queryTmpl) as! [Mensaje]
+    print("Hay \(results.count) resultados en la template")
+    for mensaje in results {
+        print(mensaje.texto!)
+    }
+}
 ```
 
 ---
@@ -193,14 +176,13 @@ NSFetchRequest *query = [miModelo
 ## Predicados en relaciones
 
 - Podemos incluir no solo los atributos “simples”, sino también los que representan relaciones 
-- **Relaciones "a uno"**:  por ejemplo, buscar todos los mensajes enviados por usuarios cuyo login comience por `m` (relación `Mensaje`-> `Usuario`)
+- **Relaciones "a uno"**:  por ejemplo, buscar todos los mensajes enviados por usuarios cuyo login comience por `m` (usamos la relación `Mensaje`-> `Usuario`)
 
 
-```objectivec
-NSFetchRequest *query = [NSFetchRequest fetchRequestWithEntityName:@"Mensaje"];
-NSPredicate *pred = [NSPredicate predicateWithFormat:@"usuario.login 
-                                                      BEGINSWITH[c] 'm'"];
-query.predicate = pred;
+```swift
+let request = NSFetchRequest<Mensaje>(entityName: "Mensaje")
+let pred = NSPredicate(format:"usuario.login BEGINSWITH[c] 'm'")
+request.predicate = pred
 ```
 
 ---
@@ -211,15 +193,9 @@ query.predicate = pred;
 - Operador `ANY` para verificar que algún valor de la colección cumple la condición. 
 - Por ejemplo buscar todos los usuarios que han participado en alguna conversación en la última hora:
 
-```objectivec
-NSFetchRequest *query = [NSFetchRequest fetchRequestWithEntityName:@"Usuario"];
-NSDate *fechaRef = [NSDate dateWithTimeIntervalSinceNow:-60*60];
-NSPredicate *pred = [NSPredicate 
-                       predicateWithFormat:@"ANY conversaciones.comienzo>%@"
-                       , fechaRef];
-query.predicate = pred;
-
-
+```swift
+let haceUnaHora  = Date(timeIntervalSinceNow: -60*60)
+let predicado = NSPredicate(format: "ANY conversaciones.comienzo>%@", argumentArray: [haceUnaHora])
 ```
 
 ---
@@ -229,33 +205,8 @@ query.predicate = pred;
 
 - Core Data nos permite trabajar directamente con el grafo de objetos, no es necesario ejecutar  *fetch request* constantemente
 - Por ejemplo, si ya tenemos un usuario en memoria y queremos consultar sus conversaciones lo hacemos accediendo directamente a la propiedad `conversaciones`, no haciendo una *fetch request* 
+- Las *fetch request* siempre acceden a la BD y por tanto son mucho más lentas que trabajar con objetos que ya están en el contexto
 
-
----
-
-## Puntos a tratar
-
-- Predicados y *fetch requests*
-- Predicados como cadenas
-- *Fetch request templates*
-- **Predicados como objetos**
-- Ordenación
-
-
----
-
-## Predicados como objetos
-
-- El equivalente a `creditos>=100` en versión *geek*
-
-```objectivec
-NSPredicate *pred = [NSComparisonPredicate
-      predicateWithLeftExpression:[NSExpression expressionForKeyPath:@"creditos"]
-      rightExpression:[NSExpression expressionForConstantValue:@100]
-      modifier:NSDirectPredicateModifier
-      type:NSGreaterThanOrEqualToPredicateOperatorType
-      options:0];
-```
 
 ---
 
@@ -272,16 +223,14 @@ NSPredicate *pred = [NSComparisonPredicate
 ## Ordenación: `NSSortDescriptor`
 
 
-```objectivec
-NSSortDescriptor *credSort = [NSSortDescriptor 
-                     sortDescriptorWithKey:@"creditos" ascending:NO];
-NSSortDescriptor *loginSort = [NSSortDescriptor 
-                    sortDescriptorWithKey:@"login" ascending:YES];
-miFetchRequest.sortDescriptors = @[credSort, loginSort]
+```swift
+let credSort = NSSortDescriptor(key:"creditos", ascending:false)
+let loginSort = NSSortDescriptor(key:"login" ascending:true)
+miFetchRequest.sortDescriptors = [credSort, loginSort])
 ```
 
-- Por defecto, para ordenar valores se intenta llamar al método `compare:`, que implementan la mayoría de clases estándar como `NSString`, `NSDate`, ...
-- En clases propias se puede usar `sortDescriptorWithKey:ascending:selector:`, donde decimos el método a usar para la comparación.
+- Por defecto, para ordenar valores se intenta llamar al método `compare:`, de la clase del atributo usado para ordenar, que implementan la mayoría de clases estándar como `String`, `Date`, ...
+- En clases propias se puede usar el inicializador de `NSSortDescriptor` `init(key:ascending:selector:`, donde decimos a qué método hay que llamar para saber si un objeto va antes que otro.
 
 ---
 
