@@ -1,6 +1,6 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 8: Tablas en Core Data
+##iOS, sesión 7: Tablas en Core Data
 
 
 ---
@@ -8,8 +8,8 @@
 ## Puntos a tratar
 
 - ***Fetched results controller***
-- Refrescar automáticamente la tabla
-- Inserciones, Modificaciones y borrados
+- Mostrar los datos en la tabla
+- Actualizar automáticamente la tabla
 - Secciones de tabla
 
 
@@ -19,209 +19,266 @@
 ## ¿De dónde vienen los datos en una tabla?
 
 
-- Típicamente de un `NSArray`
+- Típicamente de un `Array`
 - En el objeto que actúa como *datasource*:
 
-```objectivec
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
-    NSManagedObject *nota = self.notas[indexPath.row];
-    cell.textLabel.text = [nota valueForKey:@"texto"];
-    return cell;
+```swift
+override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    //recordar que el prototipo de celda tiene un "reuse identifier"
+    //que hay que asignar en el storyboard
+    let cell = tableView.dequeueReusableCell(withIdentifier: "miCelda", for: indexPath)
+    let mensaje = mensajes[indexPath.row]
+    cell.textLabel?.text = mensaje.texto!
+    return cell
 }
-
 ```
 
 ---
 
 ## `NSFetchedResultsController`
 
-- Sirve de **"puente"** entre Core Data y la vista de tabla 
+- Sirve de **"puente"** entre Core Data y la vista de tabla
+- Mejora el rendimiento:
+  - Obtiene solo los datos necesarios, los que se están mostrando
+  - Puede guardar automáticamente los datos en una *cache* 
 - Puede **detectar los cambios en el contexto** para que podamos actualizar la tabla
-- Nos ayuda a crear **secciones** e **índices**
+- Nos ayuda a crear **secciones** automáticamente 
 
 ---
 
 ## Un `NSFetchedResultsController` básico
 
-- Necesitamos
-  + Una *fetch request* que obtenga los datos a mostrar. 
+- Para inicializarlo necesitamos
+  + Asociarle una *fetch request* que obtenga los datos a mostrar. 
   + La *request* debe estar **ordenada** (Usar `NSSortDescriptor`s)
   
-```objectivec
-NSFetchRequest *request = [[NSFetchRequest alloc] initWithEntityName:@"Nota"];
-NSSortDescriptor *orden = [[NSSortDescriptor alloc ] 
-                               initWithKey:@"fecha" ascending:NO];
-request.sortDescriptors = @[orden];
+```swift  
+let miDelegate = UIApplication.shared.delegate! as! AppDelegate
+let miContexto = miDelegate.persistentContainer.viewContext
 
-//Tenemos una @property NSFetchedResultsController *frController  
-self.frController = [[NSFetchedResultsController alloc] 
-                          initWithFetchRequest:request
-                          managedObjectContext:miContexto
-                          //Esto por el momento no lo usamos
-                          sectionNameKeyPath:nil 
-                          cacheName:@"miCache"]; 
-[self.frController performFetch:nil];
+let consulta = NSFetchRequest<Mensaje>(entityName: "Mensaje")
+
+let sortDescriptors = [NSSortDescriptor(key:"fecha", ascending:false)]
+consulta.sortDescriptors = sortDescriptors
+self.frc = NSFetchedResultsController<Mensaje>(fetchRequest: consulta, managedObjectContext: miContexto, sectionNameKeyPath: nil, cacheName: "miCache")
+
+//ejecutamos el fetch
+try! self.frc.performFetch()
 ```
+
+
+---
+
+¿Dónde guardamos el *fetched results controller*?
+
+Para simplificar, supondremos que `self` es el `ViewController` de la pantalla donde está la tabla, por ejemplo un `UITableViewController`
+
+```swift
+import UIKit
+import CoreData
+
+class MiController : UITableViewController {
+  var frc : NSFetchedResultsController<Mensaje>! 
+  ...
+}
+```
+
+Así, este *controller* hace de todo (cosa que no debería :))
+- almacena el `frc`
+- es el *delegate* de la tabla
+- es el *datasource* de la tabla
+
+
+---
+
+## Puntos a tratar
+
+- *Fetched results controller*
+- **Mostrar los datos en la tabla**
+- Actualizar automáticamente la tabla
+- Secciones de tabla
+
 
 ---
 
 ## Para ver los datos en la tabla
 
 - Recordemos que debe haber un objeto que actúe de *datasource* 
-- El *datasource* debe implementar `numberOfSectionsInTableView`, `tableView:numberOfRowsInSection:` y `tableView:cellForRowAtIndexPath:`
+- El *datasource* debe implementar
+  -  `numberOfSections(in:)` devuelve número de secciones
+  -  `tableView:numberOfRowsInSection:` devuelve número de filas en una sección
+  -  `tableView:cellForRowAtIndexPath:` devuelve una celda
 
-- **Número de secciones**
+---
 
-```objectivec
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-     return [[self.frController sections] count];
+## Número de secciones
+
+Simplemente lo obtenemos del *fetched results controller*
+
+```swift
+override func numberOfSections(in tableView: UITableView) -> Int {
+    return self.frc.sections!.count
 }
 ```
 
 ---
 
-## Para ver los datos en la tabla (II)
+## Número de filas en la sección actual:
 
+Idem, lo tomamos del *fetched results controller*
 
-- Número de filas en la sección actual:
-
-```objectivec
-- (NSInteger)tableView:(UITableView *)tableView 
-         numberOfRowsInSection:(NSInteger)section {
-   id<NSFetchedResultsSectionInfo> sectionInfo = [self.frController sections][section];
-   return [sectionInfo numberOfObjects];
+```swift
+override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    return self.frc.sections![section].numberOfObjects
 }
 ```
 
 ---
 
-## Para ver los datos en la tabla (III)
+## Obtener una celda, dada la fila
 
-- Obtener una celda
 
-```objectivec
-- (UITableViewCell *)tableView:(UITableView *)tableView 
-                     cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell" 
-                                       forIndexPath:indexPath];
-    NSManagedObject *nota = [self.frController objectAtIndexPath:indexPath];
-    cell.textLabel.text = [nota valueForKey:@"texto"];
-    return cell;
+```swift
+override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    //recordar que el prototipo de celda tiene un "reuse identifier"
+    //que hay que asignar en el storyboard
+    let cell = tableView.dequeueReusableCell(withIdentifier: "miCelda", for: indexPath)
+    
+    let mensaje = self.frc.object(at: indexPath)
+    cell.textLabel?.text = mensaje.texto!
+    return cell
 }
 ```
 
 ---
 
+## Puntos a tratar
+
+- *Fetched results controller*
+- Mostrar los datos en la tabla
+- **Actualizar automáticamente la tabla**
+- Secciones de tabla
+
+---
 
 ## Refrescar la tabla
 
-- Mismo problema de la primera versión: cada vez que creamos una nueva nota esta no aparece en la tabla. 
-- El *fetched results controller*, está “suscrito” a los cambios que se producen en el contexto de persistencia
+- De momento igual que con el array: cada vez que creamos un nuevo objeto este no aparece en la tabla por sí solo, hay que llamar a `reloadData()` 
+- PERO: el *fetched results controller* está “suscrito” a los cambios que se producen en el contexto de persistencia
 - Para que nos avise a su vez de estos cambios, tenemos que convertirnos en su *delegate*. 
 
-```objectivec
-self.frController.delegate = self;
+```swift
+self.frc.delegate = self;
 ```
 
 ---
 
 ## Convertirse en el *delegate*
 
-- Declarar que la clase es conforme al protocolo `<NSFetchedResultsControllerDelegate>`
+1. Asignar valor a la propiedad `delegate` del *fetched results controller* (ya hecho)
+2. Declarar que la clase es conforme al protocolo `NSFetchedResultsControllerDelegate`
 
-```objectivec
-//ListaNotasController.h
-#import <UIKit/UIKit.h>
-#import <CoreData/CoreData.h>
+```swift
+import UIKit
+import CoreData
 
-@interface ListaNotasController : UITableViewController <NSFetchedResultsControllerDelegate>
-...
-@end
+class MiController : UITableViewController, NSFetchedResultsControllerDelegate {
+ ...
+}
 ```
 
 ---
 
 ## "Escuchar" los cambios
 
-- Si se ha modificado algún objeto del contexto se llamará a `controllerDidChangeContent`. Aprovechamos para refrescar los datos
+Cuando se van a modificar los datos y cuando ya se han modificado el *fetched results controller* avisará a su *delegate* llamando a `controllerWillChangeContent` y `controllerDidChangeContent`. Aprovechamos para llamar a `beginUpdates()` y `endUpdates` de la tabla
 
-```objectivec
-- (void) controllerDidChangeContent:(NSFetchedResultsController *)controller {
-     [self.tableView reloadData];
+```swift
+func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+    self.tableView.beginUpdates()
+}
+
+func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+    self.tableView.endUpdates()
 }
 ```
 
+Con esto, agrupamos todos los cambios en una sola animación
+
 ---
 
-## Permitir el borrado de filas
+## Visualizar los cambios
 
-- Debemos ser el *delegate* de la tabla. Implementar el siguiente método:
+Cuando se ha modificado algún objeto del contexto bajo la supervisión del *fetched results controller* se llamará a:
 
-```objectivec
-- (void)tableView:(UITableView *)tableView 
-          commitEditingStyle:(UITableViewCellEditingStyle)editingStyle 
-          forRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        //Borramos el objeto gestionado
-        [ self.frController.managedObjectContext
-          deleteObject:[self.frController objectAtIndexPath:indexPath]];
-        NSError *error;
-        [[self.frController managedObjectContext] save:&error];
-        if (error) {
-            NSLog(@"Error al intentar borrar objeto");
-        }
+```swift
+func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
+    switch type {
+    case .insert:
+        self.tableView.insertRows(at: [newIndexPath!], with:.automatic )
+    case .update:
+        self.tableView.reloadRows(at: [indexPath!], with: .automatic)
+    case .delete:
+        self.tableView.deleteRows(at: [indexPath!], with: .automatic)
+    case .move:
+        self.tableView.deleteRows(at: [indexPath!], with: .automatic)
+        self.tableView.insertRows(at: [newIndexPath!], with:.automatic )
     }
-} 
+}
 ```
 
 ---
 
-## Editar la tabla de forma un poco más sofisticada
+## Modificación en las secciones
 
-```objectivec
-- (void)controller:(NSFetchedResultsController *)controller 
-               didChangeObject:(id) anObject
-               atIndexPath:(NSIndexPath *) indexPath 
-               forChangeType:(NSFetchedResultsChangeType) type
-               newIndexPath:(NSIndexPath *) newIndexPath {
-    UITableView *tableView = self.tableView;
+El *fetched results controller* también avisa a su *delegate* cuando se modifican las secciones
+
+```swift
+func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange sectionInfo: NSFetchedResultsSectionInfo, atSectionIndex sectionIndex: Int, for type: NSFetchedResultsChangeType) {
     switch(type) {
-        case NSFetchedResultsChangeInsert:
-            [tableView insertRowsAtIndexPaths:@[newIndexPath] 
-                       withRowAnimation:UITableViewRowAnimationFade];
-            break;
-    ...
-
+    case .insert:
+        self.tableView.insertSections(IndexSet(integer:sectionIndex), with: .automatic)
+    case .delete:
+        self.tableView.deleteSections(IndexSet(integer:sectionIndex), with: .automatic)
+    default: break
+    }
 }
 ```
+
+---
+
+## Puntos a tratar
+
+- *Fetched results controller*
+- Mostrar los datos en la tabla
+- Actualizar automáticamente la tabla
+- **Secciones de tabla**
 
 ---
 
 ## Crear secciones automáticamente
 
+Con el atributo `sectionNameKeyPath` al inicializar el *fetched results controller*
 
-- Al crear el controller
-
-```objectivec
-[[NSFetchedResultsController alloc] initWithFetchRequest:request 
-  managedObjectContext:miContexto sectionNameKeyPath:@"DiaFecha" 
-  cacheName:@"miCache"];
+```swift
+self.frc = NSFetchedResultsController<Mensaje>(fetchRequest: consulta, managedObjectContext: miContexto, sectionNameKeyPath: "conversacion.titulo", cacheName: "miCache")
 ```
 
-- En el *datasource*
+---
 
-```objectivec
-- (NSString *) tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
-    id <NSFetchedResultsSectionInfo> sectionInfo = 
-                          [[self.frController sections] objectAtIndex:section];
-    return [sectionInfo name];
+## "Pintar" los títulos de sección
+
+Recordemos que el sitio de donde se sacan los datos es el *datasource*, al que la tabla le pedirá no solo las celdas sino los títulos de sección
+
+tabla -> Datasource -> fetched results controller
+
+```swift
+override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+    return self.frc.sections![section].name
 }
 ```
 
 ---
 
 
-
-
-# ¿Alguna pregunta?
+# ¿Alguna pregunta, duda o inquietud?

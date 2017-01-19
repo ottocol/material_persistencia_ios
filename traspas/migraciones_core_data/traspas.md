@@ -1,13 +1,13 @@
 
 #Persistencia en dispositivos móviles
-##iOS, sesión 10: Migraciones de datos en Core Data
+##iOS, sesión 8: Migraciones de datos en Core Data
 
 
 ---
 
 ## Puntos a tratar
 
-- **Migraciones de datos**
+- **Migraciones de datos y versiones del modelo**
 - Migraciones "ligeras"
 - Migraciones "pesadas"
 
@@ -17,30 +17,28 @@
 ## Modificaciones del modelo de datos
 
 - Es normal que durante el desarrollo se vaya **modificando iterativamente el modelo de datos**
-- Si hay cambios **hay que re-generar el soporte persistente que ha creado Core Data** . Si hay datos guardados, para evitar problemas se aborta la aplicación generando un mensaje de error
-
-```bash
-The model used to open the store is incompatible with the one used to create the store.
-```
-
----
-
-## Gestionar versiones del modelo
-
-- Podemos tener **varias versiones del mismo `.xcdatamodeld`**. Físicamente serán distintos archivos, pero Xcode nos los muestra como un *bundle*
-
-![](img/versiones_modelos.png)
-
-- En cada momento especificamos cuál es la **versión actual**
+- Cuando hay cambios **Core Data modifica automáticamente la estructura de la base de datos**. Pero ¿qué pasa con los datos ya creados?
 
 ---
 
 ## Migración de datos
 
-- Proceso que especifica **cómo transformar los datos de la antigua versión del modelo a la nueva versión**
+- Procedimiento que especifica **cómo transformar los datos de la antigua versión del modelo a la nueva versión**
 - Tipos:
-  + **"Ligera"**: iOS realiza la transformación de modo automático
+  + **"Ligera"**: iOS realiza la transformación de modo automático/semiautomático
   + **"Pesada"**: tenemos que hacerla nosotros, típicamente por código
+
+
+---
+
+## Gestionar versiones del modelo
+
+- Podemos tener **varias versiones del mismo `.xcdatamodeld`**. Ir a `Editor > Add Model Version...`
+- Físicamente serán distintos archivos, pero Xcode nos los muestra como un *bundle*
+
+![](img/versiones_modelos.png)
+
+- En cada momento indicamos cuál es la **versión actual**
 
 ---
 
@@ -48,9 +46,9 @@ The model used to open the store is incompatible with the one used to create the
 ## Puntos a tratar
 
 - Migraciones de datos
+- Versiones del modelo
 - **Migraciones "ligeras"**
 - Migraciones "pesadas"
-
 
 
 ---
@@ -120,14 +118,16 @@ The model used to open the store is incompatible with the one used to create the
 
 - En el código debemos renombrar también manualmente
 
----
 
+---
 
 ## Puntos a tratar
 
 - Migraciones de datos
+- Versiones del modelo
 - Migraciones "ligeras"
 - **Migraciones "pesadas"**
+
 
 
 ---
@@ -239,6 +239,32 @@ NSDictionary *opts = @{
 - Al arrancar la aplicación Core Data detectará que 
   + El modelo de datos actual no es el mismo que el usado para crear la BD
   + No se debe inferir automáticamente la transformación. Buscará un "mapping model" compatible con la versión actual y la anterior, y lo aplicará
+
+---
+
+#iOS10 vs. versiones anteriores
+
+- En iOS9 no existe `NSPersistentContainer`, que gestiona el *stack* de Core Data. Las clases que se usan en su lugar **no tienen las migraciones automáticas activadas**. 
+- Por defecto, si modificamos el modelo de datos y ejecutamos, aparecerá un error
+
+```bash
+The model used to open the store is incompatible with the one used to create the store
+```
+
+Para activar las migraciones automáticas:
+
+```swift
+//ESTO SE AÑADE
+let opciones = [
+      NSInferMappingModelAutomaticallyOption : false,
+      NSMigratePersistentStoresAutomaticallyOption : true
+]
+//ESTO YA ESTABA, pero antes con el options a nil
+do {
+    try coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url, options: opciones)
+} catch {
+```
+
 
 ---
 
