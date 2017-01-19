@@ -168,40 +168,41 @@
 
 ## Nuestra propia "migration policy"
 
-- Generalmente se sobreescribe el método `createDestinationInstancesForSourceInstance:entityMapping:manager:error:`
+```swift
+import UIKit
+import CoreData
 
-```objectivec
-- (BOOL) createDestinationInstancesForSourceInstance:(NSManagedObject *)sInstance entityMapping:(NSEntityMapping *)mapping manager:(NSMigrationManager *)manager error:(NSError *__autoreleasing *)error {
-  
-  //Crea una nueva nota en el "nuevo modelo" con las mismas propiedades que la nota actual
-  NSManagedObject *notaDestino = [NSEntityDescription insertNewObjectForEntityForName:@"Nota" inManagedObjectContext:manager.destinationContext];
-  [notaDestino setValue:[sInstance valueForKey:@"texto"] forKey:@"texto"];
-  [notaDestino setValue:[sInstance valueForKey:@"momento"] forKey:@"momento"];
-  
-  //Miramos si ya hemos creado una entidad Categoria para la categoria de la nota
-  NSString *nombreCategoria = [sInstance valueForKey:@"categoria"];
-  NSManagedObject *categoria = [categorias objectForKey:nombreCategoria];
-  
-  //Si no la hemos encontrado, la creamos
-  if (!categoria) {
-      categoria = [NSEntityDescription insertNewObjectForEntityForName:@"Categoria" inManagedObjectContext:manager.destinationContext];
-      [categoria setValue:nombreCategoria forKey:@"nombre"];
-      [categorias setObject:categoria forKey:nombreCategoria];
-  }
-  
-  //Asociamos la nota con su por ahora única categoría
-  //Como es una relación 1->N es un NSSet que por ahora tendrá un único elemento
-  NSSet *categoriasDeNota = [[NSSet alloc]initWithObjects:categoria, nil];
-  [notaDestino setValue:categoriasDeNota forKey:@"categorias"];
-  
-  
-  //Al final siempre hay que llamar a este método para establecer correspondencia
-  //entre entidad en el modelo actual y entidad en el nuevo
-  [manager associateSourceInstance:sInstance withDestinationInstance:notaDestino forEntityMapping:mapping];
-  
-  
-  return YES;
-  
+class CrearCategoriasMigrationPolicy: NSEntityMigrationPolicy {
+    //instancias de categorías que existen ya
+    var categorias : [String : NSManagedObject] = [:]
+    
+    override func createDestinationInstances(forSource sInstance: NSManagedObject, in mapping: NSEntityMapping, manager: NSMigrationManager) throws {
+        let notaOrigen = sInstance as! Nota
+        let notaDestino = NSEntityDescription.insertNewObject(forEntityName: "Nota", into: manager.destinationContext) as! Nota
+        //copiar propiedades básicas
+        notaDestino.contenido = notaOrigen.contenido
+        notaDestino.fecha = notaOrigen.fecha
+        notaDestino.etiquetas = notaOrigen.etiquetas
+        //si la nota tiene una categoría
+        if let nombreCategoria = notaOrigen.categoria {
+           //miramos si la categoría ya existe como entidad
+           var categoria = categorias[nombreCategoria]
+           //si no existe, creamos la instancia de la entidad
+           if categoria==nil {
+              categoria = NSEntityDescription.insertNewObject(forEntityName: "Categoria", into: manager.destinationContext)
+              categoria?.setValue(nombreCategoria, forKey: "nombre")
+              categorias[nombreCategoria] = categoria
+           }
+           //asociamos la entidad nota con la entidad categoría
+           //como es una relación 1->N es un conjunto por ahora de un único elemento
+           var catsDeNota = Set<NSManagedObject>()
+           catsDeNota.insert(categoria!)
+           notaDestino.setValue(catsDeNota, forKey: "categorias")
+        }
+        //Al final siempre hay que llamar a este método para establecer una correspondencia
+        //entre entidad en el modelo actual y entidad en el nuevo
+        manager.associate(sourceInstance: notaOrigen, withDestinationInstance: notaDestino, for: mapping)      
+    }
 }
 ```
 
