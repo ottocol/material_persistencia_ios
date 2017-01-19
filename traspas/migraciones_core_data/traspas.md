@@ -23,7 +23,7 @@
 
 ## Migración de datos
 
-- Procedimiento que especifica **cómo transformar los datos de la antigua versión del modelo a la nueva versión**
+- Procedimiento que especifica **cómo transformar los datos de la antigua versión del modelo a la nueva versión**. Si no, los usuarios perderían los datos que ya tuvieran.
 - Tipos:
   + **"Ligera"**: iOS realiza la transformación de modo automático/semiautomático
   + **"Pesada"**: tenemos que hacerla nosotros, típicamente por código
@@ -81,32 +81,15 @@
 
 ![](img/modelo_datos_1.5.png)
 
+
 ---
+
 
 ## "Activar" la migración
 
-- En la inicialización del "persistent store coordinator"
-
-```objectivec
- NSDictionary *opts = @{
-      NSMigratePersistentStoresAutomaticallyOption: @YES,
-      NSInferMappingModelAutomaticallyOption: @YES
-};
-[persistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType
-     configuration:nil URL:storeURL 
-     options:opts error:&error]
-```
-
----
-
-
-## "Activar" la migración (y 2)
-
 - Cambiar la versión del modelo en Xcode: en el editor del modelo, en el panel de la derecha, seleccionar la versión en el desplegable `Model Version`
 
-- Al arrancar la aplicación, Core Data detecta que
-  + El modelo actual no se corresponde con el usado para crear el almacén persistente
-  + Se ha especificado que realice una migración automática y que intente deducir él mismo la transformación
+- Al arrancar la aplicación, Core Data detecta que el modelo actual no se corresponde con el usado para crear la BD. En iOS10, por defecto intenta hacer la migración automáticamente
 
 ---
 
