@@ -208,25 +208,29 @@ class CrearCategoriasMigrationPolicy: NSEntityMigrationPolicy {
 
 ---
 
+Para configurar las migraciones "pesadas" hay que decirle a Core Data que haga caso de nuestro *mapping model*, que no lo "deduzca" él automáticamente a partir de los modelos
 
-## Configurar la migración
+```swift
+/En el AppDelegate
+//Esta línea queda tal cual, las modificaciones vienen a partir de ella
+//CUIDADO: el name cambia, según el nombre del proyecto
+let container = NSPersistentContainer(name: "PruebaMigraciones")
 
-- Al configurar el "persistent store coordinator"
+let urls = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+//CUIDADO: la cadena cambia, según el nombre del proyecto
+let urlBD = urls[0].appendingPathComponent("PruebaMigraciones.sqlite")
+let psd = NSPersistentStoreDescription(url: urlBD)
+//que no se intente automatizar la migración
+psd.shouldInferMappingModelAutomatically = false
+psd.type = NSSQLiteStoreType
 
-```objectivec
-NSDictionary *opts = @{
-  NSMigratePersistentStoresAutomaticallyOption: @YES,
-  NSInferMappingModelAutomaticallyOption: @NO
-};
+container.persistentStoreDescriptions = [psd]
 ```
-- Lo único que falta es establecer el nuevo modelo como la versión actual
-- Al arrancar la aplicación Core Data detectará que 
-  + El modelo de datos actual no es el mismo que el usado para crear la BD
-  + No se debe inferir automáticamente la transformación. Buscará un "mapping model" compatible con la versión actual y la anterior, y lo aplicará
+
 
 ---
 
-#iOS10 vs. versiones anteriores
+## iOS10 vs. versiones anteriores
 
 - En iOS9 no existe `NSPersistentContainer`, que gestiona el *stack* de Core Data. Las clases que se usan en su lugar **no tienen las migraciones automáticas activadas**. 
 - Por defecto, si modificamos el modelo de datos y ejecutamos, aparecerá un error
@@ -235,12 +239,15 @@ NSDictionary *opts = @{
 The model used to open the store is incompatible with the one used to create the store
 ```
 
-Para activar las migraciones automáticas:
+
+---
+
+Para activar las migraciones ligeras en iOS<=9, en el `AppDelegate`
 
 ```swift
 //ESTO SE AÑADE
 let opciones = [
-      NSInferMappingModelAutomaticallyOption : false,
+      NSInferMappingModelAutomaticallyOption : true,
       NSMigratePersistentStoresAutomaticallyOption : true
 ]
 //ESTO YA ESTABA, pero antes con el options a nil
@@ -248,6 +255,11 @@ do {
     try coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url, options: opciones)
 } catch {
 ```
+
+- los dos a true => tal y como está ahora en iOS10. Migraciones ligeras automáticas
+- el primero a false, el segundo a true => migraciones pesadas
+- los dos a false => tal y como estaban en iOS9
+
 
 
 ---
