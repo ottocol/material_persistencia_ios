@@ -152,11 +152,26 @@ Solución: desde el hilo secundario le pasamos al principal un array con los `id
 
 ---
 
+```swift
+miContexto.performBackgroundTask() {
+  contextoBG in
+  let request = NSFetchRequest<Nota>()
+  let resultadosBG = try! contextoBG.fetch(request)
+  let ids = resultadosBG.map() { $0.objectID }
+  miContexto.perform() {
+    self.resultados = ids.map() {miContexto.objectWithID}
+  }
+}
+```
+
+---
+
 ## Pasar objetos entre contextos sincronizando
 
 - Recordemos que cuando un objeto persistente se guarda, emite una notificación
 - Esta notificación se puede escuchar desde cualquier hilo
 - El método `mergeChanges` *refresca* un contexto actualizándolo con la información contenida en la notificación
+
 
 ---
 
@@ -200,6 +215,19 @@ nc.addObserver(forName: .NSManagedObjectContextDidSave,
 ![](img/contexto_hijo.png)
 
 ---
+
+```swift
+let contextoPadre = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+//El padre está conectado a un "persistent store coordinator"
+contextoPadre.persistentStoreCoordinator = ...
+let contextoHijo = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+//El hijo está conectado al padre
+contextoHijo.parent = contextoPadre
+```
+
+
+---
+
 
 ## Contextos anidados para "modo borrador"
 
